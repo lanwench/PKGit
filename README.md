@@ -1,5 +1,5 @@
 # PKGit
-Version 1.0.0
+Version 1.0.1
 
 PowerShell module containing various small helper functions for Git for Windows. 
 
