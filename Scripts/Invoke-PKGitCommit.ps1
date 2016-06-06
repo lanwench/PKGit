@@ -134,6 +134,8 @@ Function Invoke-PKGitCommit {
 
         WARNING: 'C:\MyRepo' contains untracked files; will not invoke git-push
 
+.LINK
+    https://github.com/lanwench/PKGit
 
 #>
 [CmdletBinding(

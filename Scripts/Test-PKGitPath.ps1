@@ -1,4 +1,5 @@
-﻿Function Test-PKGitPath {
+﻿#requires -Module PKGit
+Function Test-PKGitPath {
 <#
 .SYNOPSIS
     Looks for git in the local environment path
@@ -18,6 +19,8 @@
 
         v1.0.0 - 2016-05-29 - Created script
         v1.0.1 - 2016-05-29 - Moved to separate file, updated vebose output
+        v1.0.2 - 2016-06-06 - Added requires statement for parent module,
+                              link to github repo
 
 .EXAMPLE
     PS C:\> Test-PKGitPath -Verbose
@@ -35,7 +38,7 @@
         Valid directory 'C:\Program Files (x86)\Git\cmd' found in path
 
 .EXAMPLE
-    PS C:\> Test-PKGitPath -Verbose -BooleanOutput
+    PS C:\> Test-PKGitPath -BooleanOutput
     
         True
 
@@ -59,8 +62,11 @@
         
         False
 
+.LINK
+    https://github.com/lanwench/PKGit
+
 #>
-[cmdletbinding()]
+[CmdletBinding()]
 Param(
     [switch]$BooleanOutput
 )
@@ -70,7 +76,7 @@ Process {
     $ErrorActionPreference = "Stop"
 
     # Version from comment block
-    [version]$Version = "1.0.1"
+    [version]$Version = "1.0.2"
 
     # Show our settings
     $CurrentParams = $PSBoundParameters

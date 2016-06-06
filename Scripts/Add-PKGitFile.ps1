@@ -1,6 +1,7 @@
-﻿#requires -Module PKGit
-Function Invoke-PKGitPull {
-<#
+﻿<#
+#requires -Module PKGit
+Function Add-PKGitFile {
+
 .SYNOPSIS 
     Invokes git pull
 
@@ -10,7 +11,7 @@ Function Invoke-PKGitPull {
     Requires git, of course.
 
 .NOTES
-    Name    : Invoke-PKGitPull.ps1
+    Name    : Add-PKGitFile.ps1
     Author  : Paula Kingsley
     Version : 1.0.1
     History :
@@ -24,85 +25,12 @@ Function Invoke-PKGitPull {
     To do: Rebase options (parameter currently does nothing)        
 
 .EXAMPLE
-    PS C:\Users\lsimpson\git\homework> Invoke-PKGitPull -Verbose
-    # Invokes git-pull in the current directory
-
-        VERBOSE: PSBoundParameters: 
-	
-        Key           Value                                  
-        ---           -----                                  
-        Verbose       True                                   
-        Quiet         False                                  
-        Rebase        NoRebase                               
-        Path          C:\Users\lsimpson\git\homework
-        ComputerName  WORKSTATION1
-        ScriptName    Invoke-PKGitPull                       
-        ScriptVersion 1.0.1                                  
-
-        Pull URL: https://github.com/lsimpson/homework.git
-
-        VERBOSE: Invoke 'git pull -v' to the current repo 'C:\Users\lsimpson\git\homework' from remote origin 'https://github.com/lsimpson/Homework.git'?
-
-        VERBOSE: Redirecting output streams.
-        WARNING: Ignoring known Git command 'pull'. The process timeout will be disabled and may cause the ISE to hang.
-        Updating 20bbf99..e7b5419
-        Fast-forward
-         .../Reports/kittens.csv   | 241 -------
-         .../Essays/HeideggerAndKittens.docx | 757 ---------------------
-         3 files changed, 998 deletions(-)
-        From https://github.com/lsimpson/homework.git
-           20bbf99..e7b5419  master     -> origin/master
-
-.EXAMPLE
-    PS C:\Users\lsimpson\git\homework> Invoke-PKGitPull -Verbose
-    # Invokes git-pull in the current directory
-
-        VERBOSE: PSBoundParameters: 
-	
-        Key           Value                                  
-        ---           -----                                  
-        Verbose       True                                   
-        Quiet         False                                  
-        Rebase        NoRebase                               
-        Path          C:\Users\lsimpson\git\homework
-        ComputerName  WORKSTATION1
-        ScriptName    Invoke-PKGitPull                       
-        ScriptVersion 1.0.1                                  
-
-        Pull URL: https://github.com/lsimpson/homework.git
-
-        VERBOSE: Invoke 'git pull -v' to the current repo 'C:\Users\lsimpson\git\homework' from remote origin 'https://github.com/lsimpson/Homework.git'?
-
-        VERBOSE: Redirecting output streams.
-        WARNING: Ignoring known Git command 'pull'. The process timeout will be disabled and may cause the ISE to hang.
-        
-        Already up-to-date.
-
-.EXAMPLE
-    PS C:\Users\lsimpson\git\homework> Invoke-PKGitPull -Verbose
-    # Invokes git-pull in the current directory; cancels
-
-        VERBOSE: PSBoundParameters: 
-	
-        Key           Value                                  
-        ---           -----                                  
-        Verbose       True                                   
-        Quiet         False                                  
-        Rebase        NoRebase                               
-        Path          C:\Users\lsimpson\git\homework
-        ComputerName  WORKSTATION1
-        ScriptName    Invoke-PKGitPull                       
-        ScriptVersion 1.0.1                                  
-
-        Pull URL: https://github.com/lsimpson/homework.git
-
-        VERBOSE: Invoke 'git pull -v' to the current repo 'C:\Users\lsimpson\git\homework' from remote origin 'https://github.com/lsimpson/Homework.git'?
-        Operation cancelled
+ 
 
 .LINK
     https://github.com/lanwench/PKGit
 
-#>
+
 [CmdletBinding(
     SupportsShouldProcess = $True,
     ConfirmImpact = "High"
@@ -111,13 +39,14 @@ Param(
     [Parameter(
         HelpMessage = "Quiet"
     )]
-    [Switch]$Quiet = $False,
+    [Switch]$AllFiles = $False,
 
     [Parameter(
-        HelpMessage = "Rebase options (for future use; currently does nothing)"
+        HelpMessage = "Quiet"
     )]
-    [ValidateSet("NoRebase","Interactive","Preserve")]
-    [String]$Rebase = "NoRebase"
+    [Switch]$Quiet = $False
+
+
 )
 Process {    
     
@@ -216,4 +145,28 @@ Process {
         $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
     }
 }
-} #end Invoke-PKGitPull
+} #end Add-PKGitFile
+
+
+
+#
+
+function Save-OpenFile {
+    $Files = @()
+
+    foreach ($Tab in $psISE.PowerShellTabs)
+    {
+        foreach ($File in ($Tab.Files | Where-Object { !$_.IsUntitled }))
+        {
+            $Files += $File.FullPath
+        }
+    }
+
+    $Files | Out-File -FilePath $SavePath
+}
+
+
+
+
+
+##>

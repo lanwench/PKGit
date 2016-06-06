@@ -1,4 +1,4 @@
-﻿
+﻿#requires -Module PKGit
 Function Get-PKGitRemoteOrigin {
 <#
 .SYNOPSIS
@@ -12,7 +12,7 @@ Function Get-PKGitRemoteOrigin {
 .Notes
     Name    : Get-PKGitRemoteOrigin.ps1
     Author  : Paula Kingsley
-    Version : 1.1.0
+    Version : 1.1.1
     History :
         
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
@@ -21,7 +21,10 @@ Function Get-PKGitRemoteOrigin {
         v1.0.1 - 2016-05-29 - Moved to separate file, 
                               renamed from Get-PKGitRepoOrigin,
                               updated verbose output 
-        v1.1.0 - 2016-05-30 - Changed output to multidimensional array, added -OutputType string
+        v1.1.0 - 2016-05-30 - Changed output to multidimensional array, added 
+                              -OutputType parameter
+        v1.1.1 - 2016-06-06 - Added requires statement for parent module,
+                              link to github repo
 
 
 .EXAMPLE
@@ -102,6 +105,8 @@ PS C:\Users\lsimpson\Projects > Get-PKGitRemoteOrigin  -OutputType PullURLOnly -
         
         fatal: Not a git repository (or any of the parent directories): .git
 
+.LINK
+    https://github.com/lanwench/PKGit
 
 #>
 
@@ -119,7 +124,7 @@ Param(
 Process{
     
     # Version from comment block
-    [version]$Version = "1.1.0"
+    [version]$Version = "1.1.1"
 
     # Preferences
     $ErrorActionPreference = "Stop"

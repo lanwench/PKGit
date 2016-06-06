@@ -1,5 +1,5 @@
-﻿
-Function Get-PKGitInstall {
+﻿#requires -Module PKGit
+Function Test-PKGitInstall {
 <#
 .SYNOPSIS    
     Looks for git.exe on the local computer
@@ -11,9 +11,9 @@ Function Get-PKGitInstall {
     Optional -BooleanOutput returns true/false instead of path.
 
 .Notes
-    Name    : Get-PKGitInstall.ps1
+    Name    : Test-PKGitInstall.ps1
     Author  : Paula Kingsley
-    Version : 1.0.2
+    Version : 2.0.0
     History :
         
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
@@ -23,10 +23,13 @@ Function Get-PKGitInstall {
                               made path mandatory, added help
         v1.0.2 - 2016-05-29 - Changed true output for directory input 
                               to include full path to file
+        v2.0.0 - 2016-06-06 - Renamed from Test-PKGitInstall, added alias,
+                              added requires statement for parent module,
+                              link to github repo
                                  
 
 .EXAMPLE
-    PS C:\>$ Get-PKGitInstall -GitPath 'C:\Program Files (x86)\' -Verbose
+    PS C:\>$ Test-PKGitInstall -GitPath 'C:\Program Files (x86)\' -Verbose
     
         VERBOSE: PSBoundParameters: 
 	
@@ -36,7 +39,7 @@ Function Get-PKGitInstall {
         Verbose       True                                              
         BooleanOutput False                                             
         ComputerName  WORKSTATION1                                
-        ScriptName    Get-PKGitInstall                                  
+        ScriptName    Test-PKGitInstall                                  
         ScriptVersion 1.0.0                                            
 
 
@@ -44,7 +47,7 @@ Function Get-PKGitInstall {
         Git.exe was not found in 'C:\Program Files (x86)\Git\bin'
 
 .EXAMPLE
-    PS C:\> Get-PKGitInstall -GitPath "C:\Users\jbloggs\Dropbox\Portable\GitWindows\bin\git.exe" -Verbose
+    PS C:\> Test-PKGitInstall -GitPath "C:\Users\jbloggs\Dropbox\Portable\GitWindows\bin\git.exe" -Verbose
 
         VERBOSE: PSBoundParameters: 
 	
@@ -54,16 +57,19 @@ Function Get-PKGitInstall {
         Verbose       True                                                      
         BooleanOutput False                                                     
         ComputerName  WORKSTATION7                                        
-        ScriptName    Get-PKGitInstall                                          
+        ScriptName    Test-PKGitInstall                                          
         ScriptVersion 1.0.0                                                     
     
         VERBOSE: Validate path 'C:\Users\jbloggs\Dropbox\Portable\GitWindows\bin\git.exe'
         Valid path 'C:\Users\jbloggs\Dropbox\Portable\GitWindows\bin\git.exe'
 
 .EXAMPLE
-    PS C:\> Get-PKGitInstall -GitPath 'C:\Program Files (x86)' -BooleanOutput
+    PS C:\> Test-PKGitInstall -GitPath 'C:\Program Files (x86)' -BooleanOutput
                                                        
         False
+
+.LINK
+    https://github.com/lanwench/PKGit
 #>
 
 [cmdletbinding()]
@@ -82,7 +88,7 @@ Param(
 Process{
 
     # Version from comment block
-    [version]$Version = "1.0.2"
+    [version]$Version = "2.0.0"
 
     # Preference
     $ErrorActionPreference = "Stop"
@@ -162,4 +168,6 @@ Process{
         }
     } 
 }
-} #end Get-PKGitInstall
+} #end Test-PKGitInstall
+
+$Null = New-Alias Get-PKGitInstall -Value Test-PKGitInstall -Description "Backwards compatibility after rename" -Force -ErrorAction SilentlyContinue -Verbose:$False

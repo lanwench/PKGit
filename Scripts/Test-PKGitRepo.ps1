@@ -1,4 +1,5 @@
-﻿Function Test-PKGitRepo {
+﻿#requires -Module PKGit
+Function Test-PKGitRepo {
 <#
 .SYNOPSIS 
     Verifies that the current directory is managed by Git.
@@ -12,7 +13,7 @@
 .NOTES
     Name    : Test-PKGitRepo.ps1
     Author  : Paula Kingsley
-    Version : 1.0.1
+    Version : 1.0.2
     History :
     
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
@@ -20,6 +21,8 @@
         v1.0.0 - 2016-05-29 - Created script
         v1.0.1 - 2016-05-29 - Moved into separate file,
                               updated verbose output
+        v1.0.2 - 2016-06-06 - Added requires statement for parent
+                              module, link to github repo    
 
 .EXAMPLE
     PS C:\Users\lsimpson\projects> Test-PKGitRepo -Verbose
@@ -48,13 +51,17 @@
 
         VERBOSE: Check whether 'C:\Users\bsimpson\catvideos' contains a Git repo
         False
+
+.LINK
+    https://github.com/lanwench/PKGit
+
 #>
 [CmdletBinding()]
 Param()
 Process {    
     
     # Version from comment block
-    [version]$Version = "1.0.1"
+    [version]$Version = "1.0.2"
 
     # Preference
     $ErrorActionPreference = "Stop"

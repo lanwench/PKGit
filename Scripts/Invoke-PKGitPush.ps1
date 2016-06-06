@@ -1,4 +1,5 @@
-﻿Function Invoke-PKGitPush {
+﻿#requires -Module PKGit
+Function Invoke-PKGitPush {
 <#
 .SYNOPSIS 
     Invokes git push in the current directory
@@ -11,14 +12,16 @@
 .NOTES
     Name    : Invoke-PKGitPush.ps1
     Author  : Paula Kingsley
-    Version : 1.0.0
+    Version : 1.0.1
     History :
     
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
 
         v1.0.0 - 2016-05-29 - Created script
+        v1.0.1 - 2016-06-06 - Added requires statement for parent
+                              module, link to github repo
 
-    To do: add parameters, suppress warnings from posh-git?
+    To do: add more parameters once I figure out what I want to use, suppress warnings from posh-git?
         
 
 .EXAMPLE
@@ -79,6 +82,8 @@
         VERBOSE: Invoke 'git push -v' from the current repo 'C:\Users\lsimpson\git\homework' to remote origin 'https://github.com/lsimpson/homework.git' ?
         Operation cancelled
 
+.LINK
+    https://github.com/lanwench/PKGit
     
 #>
 [CmdletBinding(
@@ -94,7 +99,7 @@ Param(
 Process {    
     
     # Version from comment block
-    [version]$Version = "1.0.0"
+    [version]$Version = "1.0.1"
 
     # Preference
     $ErrorActionPreference = "Stop"
