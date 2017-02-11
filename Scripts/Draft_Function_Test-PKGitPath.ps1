@@ -1,4 +1,4 @@
-﻿#requires -Module PKGit
+﻿#requires -Version 3
 Function Test-PKGitPath {
 <#
 .SYNOPSIS
@@ -10,9 +10,9 @@ Function Test-PKGitPath {
     Optional -BooleanOutput switch
 
 .NOTES
-    Name    : Test-PKGitPath
+    Name    : Function_Test-PKGitPath
     Author  : Paula Kingsley
-    Version : 1.0.1
+    Version : 1.0.3
     History :
         
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
@@ -21,6 +21,7 @@ Function Test-PKGitPath {
         v1.0.1 - 2016-05-29 - Moved to separate file, updated vebose output
         v1.0.2 - 2016-06-06 - Added requires statement for parent module,
                               link to github repo
+        v1.0.3 - 2016-08-01 - Renamed with Function_ prefix
 
 .EXAMPLE
     PS C:\> Test-PKGitPath -Verbose
@@ -72,12 +73,13 @@ Param(
 )
 Process {
     
+    # Version from comment block
+    [version]$Version = "1.0.3"
+
+
     # Preference
     $ErrorActionPreference = "Stop"
-
-    # Version from comment block
-    [version]$Version = "1.0.2"
-
+    
     # Show our settings
     $CurrentParams = $PSBoundParameters
     $MyInvocation.MyCommand.Parameters.keys | Where {$CurrentParams.keys -notContains $_} | 

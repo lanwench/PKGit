@@ -1,4 +1,4 @@
-﻿#requires -Module PKGit
+﻿#requires -Version 3
 Function Test-PKGitRepo {
 <#
 .SYNOPSIS 
@@ -11,9 +11,9 @@ Function Test-PKGitRepo {
     Requires git, of course.
 
 .NOTES
-    Name    : Test-PKGitRepo.ps1
+    Name    : Function_Test-PKGitRepo.ps1
     Author  : Paula Kingsley
-    Version : 1.0.2
+    Version : 1.0.3
     History :
     
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
@@ -22,7 +22,8 @@ Function Test-PKGitRepo {
         v1.0.1 - 2016-05-29 - Moved into separate file,
                               updated verbose output
         v1.0.2 - 2016-06-06 - Added requires statement for parent
-                              module, link to github repo    
+                              module, link to github repo  
+        v1.0.3 - 2016-08-01 - Renamed with Function_ prefix                                
 
 .EXAMPLE
     PS C:\Users\lsimpson\projects> Test-PKGitRepo -Verbose
@@ -61,7 +62,7 @@ Param()
 Process {    
     
     # Version from comment block
-    [version]$Version = "1.0.2"
+    [version]$Version = "1.0.3"
 
     # Preference
     $ErrorActionPreference = "Stop"

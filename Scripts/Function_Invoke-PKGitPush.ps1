@@ -1,4 +1,4 @@
-﻿#requires -Module PKGit
+﻿#requires -Version 3
 Function Invoke-PKGitPush {
 <#
 .SYNOPSIS 
@@ -10,9 +10,9 @@ Function Invoke-PKGitPush {
     Requires git, of course.
 
 .NOTES
-    Name    : Invoke-PKGitPush.ps1
+    Name    : Function_Invoke-PKGitPush.ps1
     Author  : Paula Kingsley
-    Version : 1.0.1
+    Version : 1.0.2
     History :
     
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
@@ -20,6 +20,7 @@ Function Invoke-PKGitPush {
         v1.0.0 - 2016-05-29 - Created script
         v1.0.1 - 2016-06-06 - Added requires statement for parent
                               module, link to github repo
+        v1.0.2 - 2016-08-01 - Renamed with Function_ prefix
 
     To do: add more parameters once I figure out what I want to use, suppress warnings from posh-git?
         
@@ -99,7 +100,7 @@ Param(
 Process {    
     
     # Version from comment block
-    [version]$Version = "1.0.1"
+    [version]$Version = "1.0.2"
 
     # Preference
     $ErrorActionPreference = "Stop"

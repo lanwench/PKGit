@@ -1,4 +1,4 @@
-﻿#requires -Module PKGit
+﻿#requires -Version 3
 Function Invoke-PKGitPull {
 <#
 .SYNOPSIS 
@@ -10,9 +10,9 @@ Function Invoke-PKGitPull {
     Requires git, of course.
 
 .NOTES
-    Name    : Invoke-PKGitPull.ps1
+    Name    : Function_Invoke-PKGitPull.ps1
     Author  : Paula Kingsley
-    Version : 1.0.1
+    Version : 1.1.2
     History :
     
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
@@ -20,6 +20,8 @@ Function Invoke-PKGitPull {
         v1.0.0 - 2016-05-29 - Created script
         v1.0.1 - 2016-06-06 - Added requires statement for parent
                               module, link to github repo
+        v1.1.1 - 2016-08-01 - Added mandatory info to param
+        v1.1.2 - 2016-08-01 - Renamed with Function_ prefix
 
     To do: Rebase options (parameter currently does nothing)        
 
@@ -108,24 +110,36 @@ Function Invoke-PKGitPull {
     ConfirmImpact = "High"
 )]
 Param(
+    
     [Parameter(
-        HelpMessage = "Quiet"
-    )]
-    [Switch]$Quiet = $False,
-
-    [Parameter(
+        Mandatory = $False,
         HelpMessage = "Rebase options (for future use; currently does nothing)"
     )]
     [ValidateSet("NoRebase","Interactive","Preserve")]
-    [String]$Rebase = "NoRebase"
+    [String]$Rebase = "NoRebase",
+
+    [Parameter(
+        Mandatory = $False,
+        HelpMessage = "Quiet mode"
+    )]
+    [Switch]$Quiet = $False
 )
 Process {    
     
     # Version from comment block
-    [version]$Version = "1.0.1"
+    [version]$Version = "1.1.2"
 
-    # Preference
+    # Preferences
     $ErrorActionPreference = "Stop"
+    $ProgressPreference = "Continue"
+    $WarningPreference = "SilentlyContinue"
+    
+    # General purpose splat
+    $StdParams = @{}
+    $StdParams = @{
+        ErrorAction = "Stop"
+        Verbose     = $False
+    }
 
     # Where we are
     $CurrentPath = (Get-Location).Path
@@ -180,33 +194,32 @@ Process {
         # Command
         $Pull = "git pull"
 
-        # Parameters to modify command
-        If ($CurrentParams.Quiet) {
-            $Pull = $Pull +" -q"
-        }
-        If ($CurrentParams.Verbose) {
-            $Pull = "git pull -v"
+        # Modify command 
+        Switch ($Quiet) {
+            True {$Pull = $Pull +" -q"}
+            False {$Pull = $Pull +" -v"}
         }
         
         # Danger Will Robinson
         If ($CurrentParams.Rebase -ne "NoRebase") {
             Write-Warning "You chose '$($Rebase.tolower())' rebase. Be sure you know what you're doing."
-            Write-Warning "HAHAHA We aren't actually goind to use this yet."
+            Write-Warning "HAHAHA We aren't actually going to use this yet."
             #$Pull = $Pull + "-r $Rebase"
         }
 
         # Redirect output
         $Cmd = $Pull + " 2>&1"
 
-        Write-Verbose "Invoke '$Pull' to the current repo '$CurrentPath' from remote origin '$Origin'?"
+        $Msg = "Invoke '$Pull' to the current repo '$CurrentPath' from remote origin '$Origin'"
+        Write-Verbose "$Msg?"
 
-        If ($PSCmdlet.ShouldProcess($CurrentPath,"Invoke '$Pull' from remote origin '$Origin'")) {
+        If ($PSCmdlet.ShouldProcess($CurrentPath,$Msg)) {
             $Results = Invoke-Expression -Command $Cmd -ErrorAction Stop -Verbose:$False -WarningAction SilentlyContinue
             $Results
         }
         Else {
             $FGColor = "Yellow"
-            $Msg = "Operation canceled"
+            $Msg = "Operation cancelled by user"
             $Host.UI.WriteLine($FGColor,$BGColor,$Msg)
         }
     }

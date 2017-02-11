@@ -1,4 +1,4 @@
-﻿#requires -Module PKGit
+﻿#requires -Version 3
 Function Invoke-PKGitCommit {
 <#
 .SYNOPSIS 
@@ -15,14 +15,15 @@ Function Invoke-PKGitCommit {
     Requires git, of course.
 
 .NOTES
-    Name    : Invoke-PKGitCommit.ps1
+    Name    : Function_Invoke-PKGitCommit.ps1
     Author  : Paula Kingsley
-    Version : 1.0.0
+    Version : 1.0.1
     History :
     
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
 
         v1.0.0 - 2016-06-05 - Created script
+        v1.0.1 - 2016-08-01 - Renamed with Function_ prefix
         
 
 .EXAMPLE
@@ -171,7 +172,7 @@ Param(
 Process {    
     
     # Version from comment block
-    [version]$Version = "1.0.0"
+    [version]$Version = "1.0.1"
 
     # Preference
     $ErrorActionPreference = "Stop"
@@ -262,7 +263,7 @@ Process {
         }
         Else {
             $FGColor = "Yellow"
-            $Msg = "Operation canceled"
+            $Msg = "Operation cancelled by user"
             $Host.UI.WriteLine($FGColor,$BGColor,$Msg)
         }
     }

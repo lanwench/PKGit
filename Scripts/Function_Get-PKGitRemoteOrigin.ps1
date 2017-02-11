@@ -1,4 +1,4 @@
-﻿#requires -Module PKGit
+﻿#requires -Version 3
 Function Get-PKGitRemoteOrigin {
 <#
 .SYNOPSIS
@@ -10,9 +10,9 @@ Function Get-PKGitRemoteOrigin {
     Requires git.
 
 .Notes
-    Name    : Get-PKGitRemoteOrigin.ps1
+    Name    : Function_Get-PKGitRemoteOrigin.ps1
     Author  : Paula Kingsley
-    Version : 1.1.1
+    Version : 1.1.2
     History :
         
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
@@ -25,6 +25,7 @@ Function Get-PKGitRemoteOrigin {
                               -OutputType parameter
         v1.1.1 - 2016-06-06 - Added requires statement for parent module,
                               link to github repo
+        v1.1.2 - 2016-08-01 - Renamed with Function_ prefix
 
 
 .EXAMPLE
@@ -124,7 +125,7 @@ Param(
 Process{
     
     # Version from comment block
-    [version]$Version = "1.1.1"
+    [version]$Version = "1.1.2"
 
     # Preferences
     $ErrorActionPreference = "Stop"

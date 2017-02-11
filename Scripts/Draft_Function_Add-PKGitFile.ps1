@@ -1,9 +1,9 @@
-﻿<#
-#requires -Module PKGit
+﻿#requires -Version 3
+<#
 Function Add-PKGitFile {
-
+<#
 .SYNOPSIS 
-    Invokes git pull
+    Invokes 'git add', or 'git add .'
 
 .DESCRIPTION
     Uses invoke-expression and "git pull" with optional parameters,
@@ -13,16 +13,15 @@ Function Add-PKGitFile {
 .NOTES
     Name    : Add-PKGitFile.ps1
     Author  : Paula Kingsley
-    Version : 1.0.1
+    Version : 1.0.0
     History :
     
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
 
-        v1.0.0 - 2016-05-29 - Created script
-        v1.0.1 - 2016-06-06 - Added requires statement for parent
-                              module, link to github repo
+        v1.0.0 - 2016-08-01 - Created script
+        
 
-    To do: Rebase options (parameter currently does nothing)        
+    To do: 
 
 .EXAMPLE
  
@@ -30,16 +29,31 @@ Function Add-PKGitFile {
 .LINK
     https://github.com/lanwench/PKGit
 
+#>
 
 [CmdletBinding(
+    DefaultParameterSetName = "All",
     SupportsShouldProcess = $True,
     ConfirmImpact = "High"
 )]
 Param(
     [Parameter(
+        ParameterSetName = "All",
         HelpMessage = "Quiet"
     )]
-    [Switch]$AllFiles = $False,
+    [Switch]$AllFiles,
+
+    [Parameter(
+        ParameterSetName = "File",
+        HelpMessage = "Name of file (stage all listed files)"
+    )]
+    [Switch[]]$Filename,
+
+    [Parameter(
+        ParameterSetName = "Folder",
+        HelpMessage = "Name of folder (stage all contents in folder)"
+    )]
+    [Switch]$Directory,
 
     [Parameter(
         HelpMessage = "Quiet"
@@ -51,12 +65,24 @@ Param(
 Process {    
     
     # Version from comment block
-    [version]$Version = "1.0.1"
+    [version]$Version = "1.0.0"
 
-    # Preference
+    # Preferences
     $ErrorActionPreference = "Stop"
+    $ProgressPreference = "Continue"
+    $WarningPreference = "SilentlyContinue"
+    
+    # General purpose splat
+    $StdParams = @{}
+    $StdParams = @{
+        ErrorAction = "Stop"
+        Verbose     = $False
+    }
 
-    # Where we are
+    # How did we get here
+    $Source = $PSCmdlet.ParameterSetName
+    
+    # Current path
     $CurrentPath = (Get-Location).Path
 
     # Show our settings
@@ -81,6 +107,93 @@ Process {
         Break
     }
     
+    
+    Switch ($Source) {
+        All {
+            $Cmd = "git add . 2>&1"
+            Try {
+                $FGColor = "Cyan"
+                $Msg = "Add all files in '$CurrentPath' to staging"
+                $Host.UI.WriteLine($FGColor,$BGColor,"$Msg`?")
+                If ($PSCmdlet.ShouldProcess($Null,$Msg)) {
+                    $Results = Invoke-Expression -Command $Cmd @StdParams
+                    Write-Output $Results
+                    Break
+                }
+                Else {
+                    $FGColor = "Yellow"
+                    $Msg = "Operation cancelled by user"
+                    $Host.UI.WriteLine($FGColor,$BGColor,$Msg)
+                    Break
+                }
+            }
+            Catch {
+                $Msg = "General error"
+                $ErrorDetails = $_.Exception.Message
+                $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
+                Break
+            
+            }
+
+        
+        }
+        File {
+            Try {# Turn the array into an arraylist
+                $FileArr.Clear()
+                $FileArr = New-Object System.Collections.ArrayList -ArgumentList(,$FileName) @StdParams
+            }
+            Catch {
+                $Msg = "Can't convert filename to arraylist object"
+                $ErrorDetails = $_.Exception.Message
+                $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
+                Break
+            }
+            Try {
+                #Test validity
+                Foreach ($File in ($FileArr | Where-Object {(-not ($Null = Test-Path $_ @StdParams))})) {
+                    $Msg = "Can't find file '$File'; name will be removed"
+                    $Host.UI.WriteErrorLine("ERROR: $Msg")
+                    $FileArr.Remove($File)
+                }
+
+                $FileArr | ForEach-Object {
+                
+                
+                
+                
+                }
+
+
+
+            }
+            Catch {}
+
+            If ($FileArr.Count -eq 0) {
+                $Msg = "No file(s) in list"   
+                $Host.UI.WriteErrorLine("ERROR: $Msg")
+                #Break
+            }
+        }
+        Directory {
+            
+            Try {
+                If (-not ($Null = Test-Path $Directory @StdParams)) {
+                    $Msg = "Can't find directory '$File'; name will be removed"
+                    $Host.UI.WriteErrorLine("ERROR: $Msg")
+                    Break
+                }
+            }
+            Catch {}
+        }
+    } # end switch
+  
+    
+
+
+
+}
+    
+    <#
     # Show the origin
     Try {
         $Origin = Get-PKGitRemoteOrigin -OutputType PullURLOnly -Verbose:$False -ErrorAction Stop
@@ -89,25 +202,25 @@ Process {
             If (-not $Quiet.IsPresent) {$Host.UI.WriteLine($FGColor,$BGColor,"Pull URL: $Origin")}
         }
         Else {
-            $FGColor = "Red"
+            $FGColor = "Yellow"
             $Msg = "Can't find remote origin"
             $Host.UI.WriteLine($FGColor,$BGColor,$Msg)
             Break
         }
     }
     Catch {
-        $FGColor = "Red"
+        $FGColor = "Yellow"
         $Msg = "Can't check remote origin"
         $ErrorDetails = $_.Exception.Message
         $Host.UI.WriteLine($BGColor,$FGColor,"$Msg`n$ErrorDetails")
         Break
     }
-
+    #>
     # If we found it, continue
     Try {
 
         # Command
-        $Pull = "git pull"
+        $AddCmd = "git add "
 
         # Parameters to modify command
         If ($CurrentParams.Quiet) {
@@ -169,4 +282,3 @@ function Save-OpenFile {
 
 
 
-##>
