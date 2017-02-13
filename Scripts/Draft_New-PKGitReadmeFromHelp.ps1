@@ -14,13 +14,14 @@ function New-PKGitReadmeFromHelp {
 
 .NOTES 
     Name    : Function_New-PKGitReadmeFromHelp.ps1
-    Version : 1.0.0
+    Version : 1.1.0
     Author  : Paula Kingsley
     History:  
         
         ** PLEASE KEPEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
 
         v1.0.0 - 2017-02-10 - Adapted Mathieu Buisson's original module script (see link)
+        v1.1.0 - 2017-02-10 - Changed formatting output/headers
 
 .LINK
     https://github.com/MathieuBuisson/Powershell-Utility/tree/master/ReadmeFromHelp
@@ -71,7 +72,7 @@ Param(
 Begin {
 
     # Current version (please keep up to date from comment block)
-    [version]$Version = "1.0.0"
+    [version]$Version = "1.1.0"
 
     # Show our settings
     $Source = $PScmdlet.ParameterSetName
@@ -184,6 +185,9 @@ Process {
     $Msg = "Commands in the module : $($Commands.Name -join(", "))"
     Write-Verbose $Msg
 
+    #$Readme += "##Description :"
+    $Readme += "#($Module.Name)"
+    $Readme += "`n`r"
     $Readme += "##Description :"
     $Readme += "`n`r"
 
