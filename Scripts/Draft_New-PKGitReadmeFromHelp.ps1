@@ -186,9 +186,9 @@ Process {
     Write-Verbose $Msg
 
     #$Readme += "##Description :"
-    $Readme += "#($Module.Name)"
+    $Readme += "#$($Module.Name)"
     $Readme += "`n`r"
-    $Readme += "##Description :"
+    $Readme += "##Description"
     $Readme += "`n`r"
 
     $CommandsCount = $($Commands.Count)
@@ -202,14 +202,17 @@ Process {
         }            
     }
     Else {
-        $Readme += "This module contains one cmdlet : **$($Commands.Name)**.  "
+        $Readme += "This module contains one function/cmdlet : **$($Commands.Name)**.  "
     }
     If ($PSVersionRequired) {
         $Readme += "It requires PowerShell version $PSVersionRequired (or later)."
     }
     $Readme += "`n`r"
+    
     #endregion Module description
 
+    $Readme += "###Modules"
+    $Readme += "`n`r"
     Foreach ($Command in $Commands) {
         Write-Verbose $Command.Name
         
@@ -218,9 +221,10 @@ Process {
             $HelpInfo = Get-Help $Command.Name -Full @StdParams
 
             $Name = $Command.Name
-            $Readme += "##$Name :"
+            $Readme += "##$Name"
             $Readme += "`n`r"
             $Readme += $HelpInfo.description
+            $Readme += "`n`r"
 
             #region Parameters
             $Readme += "###Parameters :"
