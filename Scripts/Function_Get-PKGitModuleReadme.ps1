@@ -17,7 +17,7 @@ Function Get-PKGitModuleReadme{
     Author  : Paula Kingsley
     History:  
         
-        ** PLEASE KEPEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
+        ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
 
         v1.0.0 - 2017-02-10 - Created script
         
@@ -91,7 +91,7 @@ Function Get-PKGitModuleReadme{
         Returns a PSObject
         Accepts pipeline input
         Accepts ShouldProcess
-
+        
         #### Install-GNOpsWindowsChefClient ####
         Installs chef-client on a remote machine from a local or downloaded MSI file
         using Invoke-Command and a remote job
@@ -153,7 +153,7 @@ Param(
     )]
     [ValidateNotNullOrEmpty()]
     [ValidateSet("Synopsis","Description")]
-    [string]$LabelName
+    [string]$LabelName = "Synopsis"
 )
 
 Begin {

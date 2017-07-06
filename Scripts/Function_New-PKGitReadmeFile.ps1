@@ -1,5 +1,5 @@
 ﻿#Requires -Version 3
-function New-PKGitReadmeFromHelp {
+function New-PKGitReadmeFile {
 <#
 .SYNOPSIS
     Generates a README.md file from the comment-based help contained in the specified PowerShell module file.
@@ -13,8 +13,8 @@ function New-PKGitReadmeFromHelp {
     This works with any PowerShell module (script or compiled) and any help (comment-based or XML-based) as long as it is accessible via Get-Help.
 
 .NOTES 
-    Name    : Function_New-PKGitReadmeFromHelp.ps1
-    Version : 1.1.0
+    Name    : Function_New-PKGitReadmeFile.ps1
+    Version : 2.0.0
     Author  : Paula Kingsley
     History:  
         
@@ -22,6 +22,7 @@ function New-PKGitReadmeFromHelp {
 
         v1.0.0 - 2017-02-10 - Adapted Mathieu Buisson's original module script (see link)
         v1.1.0 - 2017-02-10 - Changed formatting output/headers
+        v2.0.0 - 2017-05-16 - Renamed from New-PKGitReadmeFromHelp, added rename for old file found
 
 .LINK
     https://github.com/MathieuBuisson/Powershell-Utility/tree/master/ReadmeFromHelp
@@ -72,7 +73,7 @@ Param(
 Begin {
 
     # Current version (please keep up to date from comment block)
-    [version]$Version = "1.1.0"
+    [version]$Version = "2.0.0"
 
     # Show our settings
     $Source = $PScmdlet.ParameterSetName
@@ -150,6 +151,7 @@ Process {
 
     # Check for existing file
     If ($Exists = Get-ChildItem -Path $ParentDirectory -Filter 'readme.md') {
+        
         $Found = New-Object PSObject -Property ([ordered]@{
             Name       = $Exists.Name
             Path       = $Exists.FullName
@@ -158,16 +160,26 @@ Process {
             CreateDate = $Exists.CreationTime
             LastWrite  = $Exists.LastWriteTime
         })
+        Write-Verbose ($Found | Out-String)
+
         If (-not $Force.IsPresent) {
-            $Msg = "Found existing readme.md; -Force not specified"
-            $Host.UI.WriteErrorLine("ERROR: $Msg")
-            Write-Output $Found
+            $Msg = "Found existing readme.md file (-Force not specified)"
+            $Host.UI.WriteErrorLine("$Msg")
             Break
         }
         Else {
-            $Msg = "Found existing readme.md"
-            Write-Verbose $Msg
-            Write-Output $Found
+            $NewName = "readme.md.backup$(Get-Date -f yyyy-MM-dd_hh-mm)"
+            Try {
+                $Rename = $Exists | Rename-Item -NewName $NewName -Force -PassThru -Confirm:$False -Verbose:$False
+                $Msg = "-Force specified (file renamed to '$NewName')"
+                Write-Verbose $Msg
+            }
+            Catch {
+                $Msg = "File rename failed"
+                $ErrorDetails = $_.Exception.Message
+                $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
+                Break
+            }
         }
     }
 
