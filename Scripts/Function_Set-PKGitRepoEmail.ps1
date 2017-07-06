@@ -6,10 +6,12 @@ Function Set-PKGitRepoEmail {
 
 .Description
     Sets the configured email address for an individual git repo
+    Supports ShouldProcess
 
 .NOTES 
     Name    : Function_Set-PKGitRepoEmail.ps1
     Version : 1.0.0
+    Created : 2017-07-05
     Author  : Paula Kingsley
     History:  
         
@@ -21,7 +23,40 @@ Function Set-PKGitRepoEmail {
     https://help.github.com/articles/setting-your-email-in-git/
         
 .EXAMPLE
- 
+    PS C:\> Set-PKGitRepoEmail -Email lanwench -Verbose
+
+        VERBOSE: PSBoundParameters: 
+	
+        Key           Value                                
+        ---           -----                                
+        Email         lanwench                             
+        Verbose       True                                 
+        RepoPath      C:\Repo\Modules
+        Cluster       All                                  
+        ScriptName    Set-PKGitRepoEmail                   
+        ScriptVersion 1.0.0                                
+
+        VERBOSE: Verify that 'C:\Repo\Modules' contains a git repo
+        VERBOSE: Change Git repo email address from 'jbloggs@corporate.net' to 'lanwench@users.noreply.github.com'
+        VERBOSE: Git email address for 'C:\Repo\Modules' is now set to 'lanwench@users.noreply.github.com'
+
+
+.EXAMPLE
+    PS C:\> Set-PKGitRepoEmail -Email jbloggs -Verbose
+
+        VERBOSE: PSBoundParameters: 
+	
+        Key           Value                                  
+        ---           -----                                  
+        Email         jbloggs                               
+        Verbose       True                                   
+        RepoPath      C:\Repo\Modules
+        Cluster       All                                    
+        ScriptName    Set-PKGitRepoEmail                     
+        ScriptVersion 1.0.0                                  
+
+        VERBOSE: Verify that 'C:\Repo\Modules' contains a git repo
+        VERBOSE: Email address for this repo is already set to jbloggs@users.noreply.github.com
 
 
 #>
@@ -87,7 +122,6 @@ Begin {
         $Host.UI.WriteErrorLine("ERROR: $Msg")
         Break
     }
-
 }
 Process {
 
@@ -123,7 +157,7 @@ Process {
                     If ($PSCmdlet.ShouldProcess($Location.Path,$Msg)) {
                         $ChangeEmail = Invoke-Expression -Command $SetCommand @StdParams
                         $NewEmail = Invoke-Expression -Command $GetCommand @StdParams
-                        $Msg = "New email for $($Location.Path) set to $NewMail"
+                        $Msg = "Git email address for '$($Location.Path)' is now set to $NewEmail"
                         Write-Verbose $Msg
                     }
                     Else {
@@ -150,4 +184,4 @@ Process {
         $Host.UI.WriteErrorLine("ERROR: $Msg; $ErrorDetails")
     }
 }
-} #end function
+} #end Set-PKGitRepoEmail
