@@ -37,20 +37,13 @@ function New-PKGitReadmeFile {
     Creates a README file for the script module Example.psm1, in the same directory.
 #>
 [CmdletBinding(
+    DefaultParameterSetName = "Module",
     SupportsShouldProcess = $True,
     ConfirmImpact = "High"
 )]
 
 Param(
-    [Parameter(
-        ParameterSetName = "File",
-        Mandatory=$True,
-        Position=0,
-        HelpMessage = "Full path to module (e.g., c:\users\jbloggs\modules\modulename.ps1"
-    )]
-    [validatescript({ Test-Path $_ })]
-    [string]$ModuleFile,
-
+    
     [Parameter(
         ParameterSetName = "Module",
         Mandatory = $true,
@@ -63,6 +56,19 @@ Param(
     [string]$ModuleName,
 
     [Parameter(
+        ParameterSetName = "File",
+        Mandatory=$True,
+        Position=0,
+        HelpMessage = "Full path to module PSM1 file (e.g., c:\users\jbloggs\modules\modulename.psm1"
+    )]
+    [validatescript({
+         If (Test-Path $_) {
+            If ($_ -match ".psm*") {$True}
+         } 
+    })]
+    [string]$ModuleFile,
+
+    [Parameter(
         Mandatory = $False,
         HelpMessage = "Force overwrite if readme.md already exists"
     )]
@@ -73,7 +79,7 @@ Param(
 Begin {
 
     # Current version (please keep up to date from comment block)
-    [version]$Version = "2.0.0"
+    [version]$Version = "2.1.0"
 
     # Show our settings
     $Source = $PScmdlet.ParameterSetName
@@ -105,30 +111,27 @@ Begin {
 Process {
 
     Switch($Source) {
-        ModuleName {
-            If (-not ($Module = Get-Module -Name $ModuleName @StdParams)) {
-                If ($Module = Get-Module -Name $Modulename -ListAvailable @StdParams | Import-Module -Force @StdParams) {
-                    $Msg = "Found and imported module $($Module), version $($Module.Version)"
+        Module {
+            If (-not ($ModuleObj = Get-Module -Name $ModuleName @StdParams)) {
+                If ($ModuleObj = Get-Module -Name $Modulename -ListAvailable @StdParams | Import-Module -Force @StdParams) {
+                    $Msg = "Found and imported module $($ModuleObj.Name), version $($ModuleObj.Version)"
                 }
                 Else {
                     $Msg = "Module '$ModuleName' not found in any PSModule directory on $Env:ComputerName"
-                    $Host.Ui.WriteErrorLine("ERROR: $Msg")
+                    $Host.UI.WriteErrorLine("ERROR: $Msg")
                     Break
                 }
             }
             Else {
-                $Msg = "Found module $($Module), version $($Module.Version)"
-                $FullModulePath = $Module.Path
-                $ParentDirectory = (Get-Item $FullModulePath @StdParams).DirectoryName
-
+                $ParentDirectory = $ModuleObj.ModuleBase
+                $Msg = "Found module '$($ModuleObj.Name)' version $($ModuleObj.Version) in  in $ParentDirectory"
+                Write-Verbose $Msg   
             }
-            Write-Verbose $Msg
         }
-        ModuleFile {
+        File {
             Try {
-                If ($Module = Import-Module $ModuleFile -Force @StdParams) {
-                    $Msg = "Found module $($Module), version $($Module.Version)"
-                    $Msg = "Found module $($Module), version $($Module.Version)"
+                If ($ModuleObj = Import-Module $ModuleFile -Force @StdParams) {
+                    $Msg = "Found module $($ModuleObj.Name), version $($Module.Version)"
                     $FullModulePath = $Module.Path
                     $ParentDirectory = (Get-Item $FullModulePath @StdParams).DirectoryName
                     Write-Verbose $Msg
@@ -152,9 +155,12 @@ Process {
     # Check for existing file
     If ($Exists = Get-ChildItem -Path $ParentDirectory -Filter 'readme.md') {
         
+        $Lines = (Get-Content $Exists | Measure-Object -Line).Lines
+
         $Found = New-Object PSObject -Property ([ordered]@{
             Name       = $Exists.Name
             Path       = $Exists.FullName
+            LineCount  = $Lines
             SizeKB     = ($Exists.Length / 1Kb).ToString("00.00")
             ReadOnly   = $Exists.IsReadOnly
             CreateDate = $Exists.CreationTime
@@ -168,23 +174,28 @@ Process {
             Break
         }
         Else {
+            $Msg = "Found existing readme.md file (-Force specified)"
+            Write-Verbose $Msg
             $NewName = "readme.md.backup$(Get-Date -f yyyy-MM-dd_hh-mm)"
-            Try {
-                $Rename = $Exists | Rename-Item -NewName $NewName -Force -PassThru -Confirm:$False -Verbose:$False
-                $Msg = "-Force specified (file renamed to '$NewName')"
-                Write-Verbose $Msg
-            }
-            Catch {
-                $Msg = "File rename failed"
-                $ErrorDetails = $_.Exception.Message
-                $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
-                Break
-            }
+            $Msg = "Rename $($Exists.FullName) to $NewName"
+            If ($PScmdlet.ShouldProcess($Env:ComputerName,$Msg)) {
+                Try {
+                    $Rename = $Exists | Rename-Item -NewName $NewName -Force -PassThru -Confirm:$False -Verbose:$False
+                    $Msg = "Renamed old file to '$NewName'"
+                    Write-Verbose $Msg
+                }
+                Catch {
+                    $Msg = "File rename failed"
+                    $ErrorDetails = $_.Exception.Message
+                    $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
+                    Break
+                }
+            }            
         }
-    }
+    } #end if file already exists
 
     # Check for Requires statements
-    $FirstLine = $Module.Definition -split "`n" | Select-Object -First 1
+    $FirstLine = $ModuleObj.Definition -split "`n" | Select-Object -First 1
     If ($FirstLine -like "#Requires*") {
         $PSVersionRequired = $($FirstLine -split " " | Select-Object -Last 1)
     }
@@ -193,12 +204,12 @@ Process {
     $Readme = @()
 
     #region Module description
-    $Commands = Get-Command -Module $Module @StdParams
+    $Commands = Get-Command -Module $ModuleObj @StdParams
     $Msg = "Commands in the module : $($Commands.Name -join(", "))"
     Write-Verbose $Msg
 
     #$Readme += "##Description :"
-    $Readme += "#$($Module.Name)"
+    $Readme += "#$($ModuleObj.Name)"
     $Readme += "`n`r"
     $Readme += "##Description"
     $Readme += "`n`r"
@@ -285,11 +296,11 @@ Process {
         Write-Verbose $Msg
     }
 
-    $Msg = "Remove module $($Module.Name)"
+    $Msg = "Remove module $($ModuleObj.Name)"
     Write-Verbose $Msg
     If ($PScmdlet.ShouldProcess($Env:ComputerName,$Msg)) {
         Try {
-            $Null = Remove-Module $Module -Confirm:$False @StdParams
+            $Null = Remove-Module $ModuleObj -Confirm:$False @StdParams
             $Msg = "Operation completed successfuly"
             Write-Verbose $Msg
         }
