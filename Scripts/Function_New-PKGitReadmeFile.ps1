@@ -23,6 +23,7 @@ function New-PKGitReadmeFile {
         v1.0.0 - 2017-02-10 - Adapted Mathieu Buisson's original module script (see link)
         v1.1.0 - 2017-02-10 - Changed formatting output/headers
         v2.0.0 - 2017-05-16 - Renamed from New-PKGitReadmeFromHelp, added rename for old file found
+        v2.1.0 - 2017-08-22 - Added LabelName parameter, to choose Synopsis or Description for function content
 
 .LINK
     https://github.com/MathieuBuisson/Powershell-Utility/tree/master/ReadmeFromHelp
@@ -59,7 +60,7 @@ Param(
         ParameterSetName = "File",
         Mandatory=$True,
         Position=0,
-        HelpMessage = "Full path to module PSM1 file (e.g., c:\users\jbloggs\modules\modulename.psm1"
+        HelpMessage = "Full path to module's .psm1 file (e.g., c:\users\jbloggs\modules\modulename.psm1"
     )]
     [validatescript({
          If (Test-Path $_) {
@@ -67,6 +68,21 @@ Param(
          } 
     })]
     [string]$ModuleFile,
+
+    [Parameter(
+        Mandatory = $False,
+        HelpMessage = "Label to use (Synopsis or Description)"
+    )]
+    [ValidateNotNullOrEmpty()]
+    [ValidateSet("Synopsis","Description")]
+    [string]$LabelName = "Synopsis",
+
+    [Parameter(
+        Mandatory = $False,
+        HelpMessage = "Full name of author"
+    )]
+    [ValidateNotNullOrEmpty()]
+    [string]$Author = "Paula Kingsley",
 
     [Parameter(
         Mandatory = $False,
@@ -107,6 +123,18 @@ Begin {
         Verbose = $False
     }
 
+    # In case there isn't one...we will try the other
+    # and line spacing might be different
+    Switch ($LabelName) {
+        Synopsis {
+            $Alt = "Description"
+            $Spacer = "`n"
+        }
+        Description {
+            $Alt = "Synopsis"
+            $Spacer = ""
+        }
+    }
 }
 Process {
 
@@ -124,7 +152,7 @@ Process {
             }
             Else {
                 $ParentDirectory = $ModuleObj.ModuleBase
-                $Msg = "Found module '$($ModuleObj.Name)' version $($ModuleObj.Version) in  in $ParentDirectory"
+                $Msg = "Found module '$($ModuleObj.Name)' version $($ModuleObj.Version) in $ParentDirectory"
                 Write-Verbose $Msg   
             }
         }
@@ -137,13 +165,13 @@ Process {
                     Write-Verbose $Msg
                 }
                 Else {
-                    $Msg = "Can't import module"
+                    $Msg = "Module import failed"
                     $Host.UI.WriteErrorLine("ERROR: $Msg")
                     Break
                 }
             }
             Catch {
-                $Msg = "Can't import module"
+                $Msg = "Module import failed"
                 $ErrorDetails = $_.Exception.Message
                 $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
                 Break
@@ -155,7 +183,7 @@ Process {
     # Check for existing file
     If ($Exists = Get-ChildItem -Path $ParentDirectory -Filter 'readme.md') {
         
-        $Lines = (Get-Content $Exists | Measure-Object -Line).Lines
+        $Lines = (Get-Content $Exists.FullName | Measure-Object -Line).Lines
 
         $Found = New-Object PSObject -Property ([ordered]@{
             Name       = $Exists.Name
@@ -169,12 +197,12 @@ Process {
         Write-Verbose ($Found | Out-String)
 
         If (-not $Force.IsPresent) {
-            $Msg = "Found existing readme.md file (-Force not specified)"
+            $Msg = "Found existing readme.md file (you must specify -Force to overwrite)"
             $Host.UI.WriteErrorLine("$Msg")
             Break
         }
         Else {
-            $Msg = "Found existing readme.md file (-Force specified)"
+            $Msg = "Overwrite existing readme.md file"
             Write-Verbose $Msg
             $NewName = "readme.md.backup$(Get-Date -f yyyy-MM-dd_hh-mm)"
             $Msg = "Rename $($Exists.FullName) to $NewName"
@@ -199,43 +227,76 @@ Process {
     If ($FirstLine -like "#Requires*") {
         $PSVersionRequired = $($FirstLine -split " " | Select-Object -Last 1)
     }
+    Else {
+        $PSVersionRequired = $ModuleObj.PowerShellVersion.ToString()
+    }
 
     # Preparing a variable which will store strings making up the content of the README file
     $Readme = @()
 
     #region Module description
     $Commands = Get-Command -Module $ModuleObj @StdParams
-    $Msg = "Commands in the module : $($Commands.Name -join(", "))"
+    $CommandsCount = $($Commands.Count)
+
+    $Msg = "Commands in this module : $(($Commands.Name | Sort) -join("`n * "))"
     Write-Verbose $Msg
 
-    #$Readme += "##Description :"
-    $Readme += "#$($ModuleObj.Name)"
-    $Readme += "`n`r"
-    $Readme += "##Description"
-    $Readme += "`n`r"
+    $Readme += "# Module $($ModuleObj.Name)"
+    $Readme += "This file was generated on $(Get-Date  -f F)"
 
-    $CommandsCount = $($Commands.Count)
-    If ($CommandsCount -gt 1) {
+    $Readme += "$Spacer##About"
+    $Readme += "$Spacer`Author    : $Author"
+    $Readme += "Type      : $($ModuleObj.ModuleType)"
+    $Readme += "Version   : $($ModuleObj.Version)"
+    #$Readme += $Spacer
 
-        # At the end of the following string, there are 2 spaces
-        # This is how we do a new line in the same paragraph in GitHub flavored markdown
-        $Readme += "This module contains $CommandsCount cmdlets :  "
-        Foreach ($Command in $Commands) {
-            $Readme += "**$($Command.Name)**  "
-        }            
-    }
-    Else {
-        $Readme += "This module contains one function/cmdlet : **$($Commands.Name)**.  "
-    }
-    If ($PSVersionRequired) {
-        $Readme += "It requires PowerShell version $PSVersionRequired (or later)."
-    }
-    $Readme += "`n`r"
-    
+    $Readme += "$Spacer`This module contains $CommandsCount PowerShell function(s)"
+    $Readme += "_Functions should be presumed to be authored by $Author unless otherwise specified (see the context help within each function for more information, including credits)._"
+    #$Readme += $Spacer
+
+    $Readme += "$Spacer`All functions should have reasonably detailed comment-based help, accessible via `Get-Help`, e.g., "
+    $Readme += '  * `Get-Help Do-Something`'
+    $Readme += '  * `Get-Help Do-Something -Examples`'
+    $Readme += '  * `Get-Help Do-Something -ShowWindow`'
+    #$Readme += $Spacer
+
+    $Readme += "$Spacer## Prerequisites ##"
+    $Readme += "$Spacer`Computers must:"
+    $Readme += "  * be running PowerShell $PSVersionRequired or later"
+    #$Readme += $Spacer
+
+    $Readme += "$Spacer## Installation ##"
+    $Readme += "$Spacer`Clone/copy entire module directory into a valid PSModules folder on your computer and run ``Import-Module $($ModuleObj.Name)``"
+    #$Readme += $Spacer
+
     #endregion Module description
 
-    $Readme += "###Modules"
-    $Readme += "`n`r"
+    $Readme += "$Spacer### Modules"
+    #$Readme += $Spacer
+
+    Foreach ($Command in ($Commands| Sort)) {
+
+        Write-Verbose $Command.Name
+        Try {
+            If (-not ($Output = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$LabelName)) {
+                If (-not ($Output = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$Alt)) {
+                    $Host.UI.WriteErrorLine("No '$LabelName' or '$Alt' help found for $($Cmd.Name)")
+                }
+            }
+            If ($Output) {
+                $Readme += "$Spacer#### $($Command.Name) ####"
+                $Readme += $Output
+            }
+        }
+        Catch {
+            $Msg = "Can't get/find help for $($Command.Name)"
+            $ErrorDetails = $_.Exception.Message
+            $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
+        }
+    } #end foreach function/command
+
+    <#
+
     Foreach ($Command in $Commands) {
         Write-Verbose $Command.Name
         
@@ -279,6 +340,8 @@ Process {
             $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
         }
     }
+
+    #>
 
     # Output to file
     $ReadmeFilePath = Join-Path -Path $ParentDirectory -ChildPath "README.md"
