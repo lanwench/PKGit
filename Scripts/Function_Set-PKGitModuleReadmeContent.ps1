@@ -1,5 +1,5 @@
 ﻿#Requires -Version 3
-Function Get-PKGitModuleReadme{
+Function Set-PKGitModuleReadmeContent {
 <#
 .Synopsis
     Creates markdown-formatted output suitable for a Git readme.md by running Get-Help against a module, 
@@ -12,17 +12,18 @@ Function Get-PKGitModuleReadme{
     Outputs a PSObject
 
 .NOTES 
-    Name    : Function_Get-PKGitModuleReadme.ps1
-    Version : 1.0.0
+    Name    : Function_Set-PKGitModuleReadmeContent.ps1
+    Version : 02.00.0000
     Author  : Paula Kingsley
     History:  
         
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
 
-        v1.0.0 - 2017-02-10 - Created script
+        v1.0.0      - 2017-02-10 - Created script
+        v02.00.0000 - 2017-11-30 - Renamed from Set-PKGitModuleReadmeContent
         
 .EXAMPLE
-    PS C:\> Get-PKGitModuleReadme -ModuleName gnopswindowschef -LabelName Synopsis -Verbose
+    PS C:\> Set-PKGitModuleReadmeContent -ModuleName gnopswindowschef -LabelName Synopsis -Verbose
     # Creates markdown-formatted output suitable for a Git readme.md, for the GNOpsWindowsChef module, using the Synopsis label
 
         VERBOSE: PSBoundParameters: 
@@ -32,7 +33,7 @@ Function Get-PKGitModuleReadme{
         ModuleName    gnopswindowschef     
         LabelName     Synopsis             
         Verbose       True                 
-        ScriptName    Get-PKGitModuleReadme
+        ScriptName    Set-PKGitModuleReadmeContent
         ScriptVersion 1.0.0                
 
         VERBOSE: Get module 'gnopswindowschef'
@@ -77,7 +78,7 @@ Function Get-PKGitModuleReadme{
         Looks for the chef-client service on a computer and prompts to remove it if found
 
 .EXAMPLE
-    PS C:\> "GNOpsWindowsChef" | Get-PKGitModuleReadme -LabelName Description
+    PS C:\> "GNOpsWindowsChef" | Set-PKGitModuleReadmeContent -LabelName Description
     # Creates markdown-formatted output suitable for a Git readme.md, for the GNOpsWindowsChef module, using the Description label
 
         # Functions
@@ -159,7 +160,7 @@ Param(
 Begin {
     
     # Current version (please keep up to date from comment block)
-    [version]$Version = "1.0.0"
+    [version]$Version = "02.00.0000"
 
     # Show our settings
     $CurrentParams = $PSBoundParameters
@@ -199,6 +200,14 @@ Begin {
     }
 
     $Results= @()
+
+    # Console output
+    $Activity = "Get new content for readme.md from module $Module"
+    $BGColor = $Host.UI.RawUI.BackgroundColor
+    $Msg = "Action: $Activity"
+    $FGColor = "Yellow"
+    If (-not $SuppressConsoleOutput.IsPresent) {$Host.UI.WriteLine($FGColor,$BGColor,$Msg)}
+    Else {Write-Verbose $Msg}
 }
 Process {
 
@@ -269,4 +278,4 @@ Process {
 
 }
 
-} #end Get-PKGitModuleReadme
+} #end Set-PKGitModuleReadmeContent
