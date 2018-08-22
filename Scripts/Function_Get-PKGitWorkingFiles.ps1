@@ -13,18 +13,22 @@ Function Get-PKGitWorkingFiles {
     Name    : Function_Get-PKGitWorkingFiles.ps1 
     Created : 2018-03-21
     Author  : Paula Kingsley
-    Version : 01.00.0000
+    Version : 01.01.0000
     History :
         
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK **
         
         v01.00.0000 - 2018-03-21 - Created script
+        v01.01.0000 - 2018-03-21 - Added regex to include subfolder paths when using -CurrentDirectoryOnly, added -ReturnString
 
 .PARAMETER CurrentDirectoryOnly
     Display working files for current directory only
 
 .PARAMETER Menu
     Prompt for selection of working files
+
+.PARAMETER ReturnString
+    Return files as string, separated by spaces (e.g., for use in `git add file1 file2 file3')
 
 .PARAMETER SuppressconsoleOutput
     Suppress all non-verbose/non-error console output
@@ -156,6 +160,11 @@ Function Get-PKGitWorkingFiles {
         ../main/Scripts/Draft_Function_Stop-PKSpoolerSvc.ps1
 
 .EXAMPLE
+    PS C:\RepoMan> Get-PKGitWorkingFiles -CurrentDirectoryOnly -ReturnString -SuppressConsoleOutput
+
+        Scripts/Function_Get-PKInfo.ps1 Scripts/Function_Add-PKUpdates.ps1 Scripts/New-PKVMTemplate.ps1
+
+.EXAMPLE
     PS C:\temp> Get-PKGitWorkingFiles -Menu -SuppressConsoleOutput
 
         Directory 'C:\temp' is not a git repo
@@ -177,6 +186,12 @@ Param(
 
     [Parameter(
         Mandatory = $False,
+        HelpMessage = "Return files as string, separated by spaces (e.g., for use in `git add file1 file2 file3')"
+    )]
+    [switch]$ReturnString,
+
+    [Parameter(
+        Mandatory = $False,
         HelpMessage = "Suppress all non-verbose/non-error output"
     )]
     [switch]$SuppressConsoleOutput
@@ -185,7 +200,7 @@ Begin {
 
 
     # Version from comment block
-    [version]$Version = "01.00.000"
+    [version]$Version = "01.01.000"
 
     # Show our settings
     $CurrentParams = $PSBoundParameters
@@ -199,6 +214,7 @@ Begin {
 
     # Preference
     $ErrorActionPreference = "Stop"
+    $ProgressPreference = "Continue"
     
     # General purpose splat
     $StdParams = @{
@@ -258,9 +274,6 @@ Begin {
     Else {
         $Msg = "Verified git is installed and in system path"
         Write-Verbose $Msg
-        If (-not (Get-Module $Mod -ErrorAction SilentlyContinue -Verbose:$False)) {
-            $Null = Import-Module @StdParams
-        }
     }
     If (-not ($Mod = Get-Module -Name posh-git -ListAvailable -ErrorAction SilentlyContinue -Verbose:$False)) {
         $Msg = "Failed to find 'posh-git' module; if you have Chocolatey, you can install it using 'choco install poshgit'"
@@ -276,10 +289,13 @@ Begin {
     }
 
     #endregion Prerequisites
+
+
     $Activity = "Get git working files"   
     If ($CurrentDirectoryOnly.IsPresent) {$Activity += " in current directory"}
     If ($Menu.IsPresent) {$Activity += ", bringing up a selection menu"}
     $Msg = "Action: $Activity"
+    $BGColor    = $Host.UI.RawUI.BackgroundColor
     $FGColor = "Yellow"
     If (-not $SuppressConsoleOutput.IsPresent) {$Host.UI.WriteLine($FGColor,$BGColor,$Msg)}
     Else {Write-Verbose $Msg}
@@ -317,7 +333,8 @@ Process {
     
                 $GitStatus = Get-GitStatus @StdParams
                 $CurrDir = "$((Get-Item $PWD.Path).Name)/"
-                [array]$WorkingFiles = $GitStatus.Working | Where-Object {$_ -match [Regex]::Escape($CurrDir)}
+                $Pattern = "^\.+\/\w" # (anything beginning with ..\ isn't in this directory
+                [array]$WorkingFiles = $GitStatus.Working | Where-Object {($_ -notmatch $Pattern) -or ($_ -match [Regex]::Escape($CurrDir))}
             }
             Else {
                 $Msg = "Get all git working files"
@@ -362,7 +379,12 @@ Process {
         }
 
         If ($SelectedFiles) {
-            Write-Output $SelectedFiles
+            If ($ReturnString.IsPresent) {
+                Write-Output ($SelectedFiles -join(" "))
+            }
+            Else {
+                Write-Output $SelectedFiles
+            }
         }  
     
     } #end if git repo directory
