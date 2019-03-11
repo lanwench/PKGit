@@ -21,6 +21,11 @@ Try {
         $Function = Split-Path $_ -Leaf
         . $_
     }
+
+    If ($Null = Get-Command git.exe) {
+        Set-Alias -Name git -Value $ScriptPath\Files\git_ise.cmd -Description "Fix stderr issue with git in the PS ISE" -Force -Scope Local -Confirm:$False -Verbose:$False
+    }
+
 } Catch {
     Write-Warning ("{0}: {1}" -f $Function,$_.Exception.Message)
     Continue
