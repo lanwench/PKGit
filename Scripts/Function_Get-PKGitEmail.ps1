@@ -95,7 +95,6 @@ Function Get-PKGitEmail {
 
         WARNING: [LAPTOP] 'c:\users\jbloggs\catvideos' does not appear to contain a git repository
 
-
         ComputerName : LAPTOP
         Scope        : Local
         Path         : c:\users\jbloggs\catvideos
