@@ -14,12 +14,13 @@ Function Set-PKGitEmail {
     Name    : Function_Set-PKGitEmail.ps1 
     Created : 2018-08-13
     Author  : Paula Kingsley
-    Version : 01.00.0000
+    Version : 01.01.0000
     History :
 
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
 
         v01.00.0000 - 2018-08-13 - Created script
+        v01.01.0000 - 2019-04-09 - Created script
 
 .EXAMPLE
     PS C:\Repos\Repo1> Set-PKGitEmail -Scope Local -EmailAddress "jbloggs@users.noreply.github.com" -Verbose
@@ -36,13 +37,13 @@ Function Set-PKGitEmail {
 
         Set local config user email address
         Local config user email address is not currently specified in C:\Repos\Repo1
-        Successfully set local config user email address to 'lanwench@users.noreply.github.com' in C:\Repos\Repo1
+        Successfully set local config user email address to 'jbloggs@users.noreply.github.com' in C:\Repos\Repo1
 
 
         Scope      : Local
         IsChanged  : True
         OldAddress : (none)
-        NewAddress : lanwench@users.noreply.github.com
+        NewAddress : jbloggs@users.noreply.github.com
         Target     : C:\Repos\Repo1
         Messages   : 
 
@@ -100,7 +101,7 @@ Function Set-PKGitEmail {
         IsChanged  : False
         OldAddress : Error
         NewAddress : lanwench@users.noreply.github.com
-        Target     : PKINGSLEY-05122
+        Target     : WORKSTATION14
         Messages   : C:\Users\JBloggs is not a git repository
 
 #>
@@ -129,7 +130,6 @@ Param(
     [ValidateScript({$_ -as [mailaddress]})]
     [string]$EmailAddress,
 
-
     [Parameter(
         HelpMessage = "Suppress non-verbose console output"
     )]
@@ -139,7 +139,7 @@ Param(
 Begin {
     
     # Current version (please keep up to date from comment block)
-    [version]$Version = "01.00.0000"
+    [version]$Version = "01.01.0000"
 
     # How did we get here
     $ScriptName = $MyInvocation.MyCommand.Name
@@ -176,7 +176,7 @@ Begin {
         Messages   = "Error"
     })
     Switch ($Scope) {
-        Local {$Output.Target = $PWD.Path}
+        Local  {$Output.Target = $PWD.Path}
         Global {$Output.Target = $Env:ComputerName}
     }
     
@@ -200,7 +200,6 @@ Process {
         $TestCmd = "git rev-parse --is-inside-work-tree 2>&1"
         $ScriptBlock = [scriptblock]::Create($TestCmd)
 
-        #If (($Null = Invoke-Expression -Command $Cmd -ErrorAction Stop -Verbose:$False) -eq $True) {
         If (($Null = Invoke-Command -ScriptBlock $ScriptBlock -ErrorAction Stop -Verbose:$False) -eq $True) {
             $Continue = $True
         }
@@ -219,7 +218,6 @@ Process {
         If (-not $Quiet.IsPresent) {$Host.UI.WriteErrorLine("ERROR: $Msg")}
         Else {Write-Verbose $Msg}
         
-        #$Output.IsChanged = $False
         $Output.Messages = $Msg
     }
     
