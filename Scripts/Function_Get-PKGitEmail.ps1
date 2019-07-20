@@ -145,7 +145,6 @@ Begin {
 
     # How did we get here
     $ScriptName = $MyInvocation.MyCommand.Name
-    #[switch]$PipelineInput = ((-not $PSBoundParameters.Path) -and (-not $Path))
     [switch]$PipelineInput = $MyInvocation.ExpectingInput
     
     # Display our parameters
@@ -293,41 +292,6 @@ Begin {
 }
 Process {
     
-    <#
-    Foreach ($P in $Path) {
-    # Set the flag
-    [switch]$Continue = $False
-
-    # Make sure we're in a git repo
-    Try {
-        $Test = IsGitRepo -Path $P
-        If (($Test.Email -eq "Error") -and ($GetLocal.IsPresent)) {
-            $Msg = "'$Path' does not appear to contain a git repository"
-            Write-Warning "[$Env:ComputerName] $Msg"
-            $Test.Scope = "Local"
-            $Test
-            #$GetLocal = $False
-        }
-        Else {
-            $Msg = "'$P' contains a git repository"
-            Write-Verbose "[$Env:ComputerName] $Msg"
-        }
-        If ($GetGlobal.IsPresent) {GetGlobalEmail}        
-        If ($GetLocal.IsPresent)  {GetLocalEmail -Path $P}    
-    }
-    Catch {
-        $Msg = "'$P' does not appear to contain a git repository"
-        If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-        If (-not $Quiet.IsPresent) {$Host.UI.WriteErrorLine("[$Env:ComputerName] $Msg")}
-        Else {Write-Warning "[$Env:ComputerName] $Msg"}
-    }
-
-    }
-
-    #>
-
-    
-
     # Set the flag
     [switch]$Continue = $False
     
