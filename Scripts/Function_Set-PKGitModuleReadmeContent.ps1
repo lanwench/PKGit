@@ -2,11 +2,11 @@
 Function Set-PKGitModuleReadmeContent {
 <#
 .Synopsis
-    Creates markdown-formatted output suitable for a Git readme.md by running Get-Help against a module, 
+    Creates markdown-formatted output suitable for a git readme.md by running Get-Help against a module, 
     using either the Synopsis or Description label
 
 .Description
-    Creates markdown-formatted output suitable for a Git readme.md by running Get-Help against a module, 
+    Creates markdown-formatted output suitable for a git readme.md by running Get-Help against a module, 
     using either the Synopsis or Description label
     Accepts pipeline input
     Outputs a PSObject
@@ -24,7 +24,7 @@ Function Set-PKGitModuleReadmeContent {
         
 .EXAMPLE
     PS C:\> Set-PKGitModuleReadmeContent -ModuleName gnopswindowschef -LabelName Synopsis -Verbose
-    # Creates markdown-formatted output suitable for a Git readme.md, for the GNOpsWindowsChef module, using the Synopsis label
+    # Creates markdown-formatted output suitable for a git readme.md, for the GNOpsWindowsChef module, using the Synopsis label
 
         VERBOSE: PSBoundParameters: 
 	
@@ -79,7 +79,7 @@ Function Set-PKGitModuleReadmeContent {
 
 .EXAMPLE
     PS C:\> "GNOpsWindowsChef" | Set-PKGitModuleReadmeContent -LabelName Description
-    # Creates markdown-formatted output suitable for a Git readme.md, for the GNOpsWindowsChef module, using the Description label
+    # Creates markdown-formatted output suitable for a git readme.md, for the GNOpsWindowsChef module, using the Description label
 
         # Functions
         #### Get-GNOpsChefNode ####

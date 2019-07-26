@@ -267,7 +267,7 @@ Begin {
     Write-Verbose $Msg
 
     If (-not ($Null = Get-Command git -ErrorAction SilentlyContinue -Verbose:$False)) {
-        $Msg = "Failed to find git; make sure Git for Windows is installed and in the current path"
+        $Msg = "Failed to find git; make sure git for Windows is installed and in the current path"
         $Host.UI.WriteErrorLine("ERROR: $Msg")
         Break
     }
@@ -305,7 +305,7 @@ Begin {
 }
 Process {
     
-    # Verifity this is a Git directory
+    # Verifity this is a git directory
     $Msg = "Verify directory contains git repo(s)"
     $Activity = $Msg
     Write-Verbose $Msg    
