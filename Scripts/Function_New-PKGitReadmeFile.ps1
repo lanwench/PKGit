@@ -294,7 +294,7 @@ Begin {
     #region Functions
 
     # Function to write a console message or a verbose message
-    Function $Script:Write-MessageInfo {
+    Function Write-MessageInfo {
         Param([Parameter(ValueFromPipeline)]$Message,$FGColor,[switch]$Title)
         $BGColor = $host.UI.RawUI.BackgroundColor
         If (-not $Quiet.IsPresent) {
@@ -305,7 +305,7 @@ Begin {
     }
 
     # Function to write an error or a verbose message
-    Function $Script:Write-MessageError {
+    Function Write-MessageError {
         [CmdletBinding()]
         Param([Parameter(ValueFromPipeline)]$Message)
         $BGColor = $host.UI.RawUI.BackgroundColor
