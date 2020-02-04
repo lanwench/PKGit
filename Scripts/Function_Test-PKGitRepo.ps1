@@ -145,13 +145,11 @@ Begin {
         Else {Write-Verbose "$Message"}
     }
 
-    # Function to write an error or a verbose message
+    # Function to write an error as a string (no stacktrace)
     Function Write-MessageError {
         [CmdletBinding()]
         Param([Parameter(ValueFromPipeline)]$Message)
-        $BGColor = $host.UI.RawUI.BackgroundColor
-        If (-not $Quiet.IsPresent) {$Host.UI.WriteErrorLine("$Message")}
-        Else {Write-Verbose "$Message"}
+        $Host.UI.WriteErrorLine("$Message")
     }
 
     # Function to test for repo (beyond looking for hidden .git folders)

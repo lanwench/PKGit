@@ -12,7 +12,7 @@ Function Set-PKGitEmail {
     Returns a PSObject
 
 .NOTES
-    Name    : Function_Set-backupsEmail.ps1 
+    Name    : Function_Set-PKGitEmail.ps1 
     Created : 2018-08-13
     Author  : Paula Kingsley
     Version : 02.00.0000
@@ -25,7 +25,7 @@ Function Set-PKGitEmail {
         v02.00.0000 - 2019-10-10 - Added pipeline input, overhauled, added inner functions, other updates
 
 .EXAMPLE
-    Set-PKGitEmail -Global -EmailAddress joe.bloggs@domain.local -Verbose
+    PS C:\> Set-PKGitEmail -Global -EmailAddress joe.bloggs@domain.local -Verbose
 
         VERBOSE: PSBoundParameters: 
 	
