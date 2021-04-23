@@ -226,7 +226,6 @@ Process {
 
                     Try {
                         $Status = Invoke-Expression "git status 2>&1"
-                        #$Null = Set-Location $StartLocation
                     }
                     Catch {}
 
@@ -237,8 +236,9 @@ Process {
                     Else {
                         Write-Output $Status
                         
-                        $Regex = [regex]::Escape('nothing added to commit but untracked files present (use "git add" to track)')
-                        If ($Status -match $Regex) {
+                        $Regex1 = [regex]::Escape('nothing added to commit but untracked files present (use "git add" to track)')
+                        $Regex2 = [regex]::Escape('(use "git add <file>..." to include in what will be committed)')
+                        If ($Status -match $Regex1 -or $Status -match $Regex2) {
                             $Msg = "Nothing to commmit but untracked files found; invoke 'git add *' before commit"
                             Write-Verbose "[$($GitFolder)] $Msg"
                             $ConfirmMsg = "Untracked files found; run 'git add *' to add all untracked files before commit"
@@ -259,6 +259,7 @@ Process {
                                 $AddAllTrackedChanges = $True
                             }
                         }
+
 
                         If (($Message = Read-Host -Prompt "Commit message").length -gt 0) {
                             
