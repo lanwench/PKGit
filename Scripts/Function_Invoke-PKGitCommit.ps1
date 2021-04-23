@@ -1,142 +1,132 @@
-﻿#requires -Version 3
+﻿#requires -Version 4
 Function Invoke-PKGitCommit {
 <#
 .SYNOPSIS 
-    Uses invoke-expression and "git commit" with optional parameters in the current directory
+    Uses invoke-expression and "git commit" with optional parameters
 
 .DESCRIPTION
-    Uses invoke-expression and "git commit" with optional parameters in the current directory,
-    including add all tracked changes (git commit -a). 
-    First verifies that directory contains a repo. 
-    Forces mandatory message. 
-    Optional parameter invokes Invoke-PKGitPush and runs git-push if the commit
-    was successful and there are no untracked files.
-    Supports ShouldProcess.
-    Requires git, of course.
+    Uses invoke-expression and "git commit" with optional parameters
+    Defaults to current directory
+    If -Recurse is specified, searches for all git repos in subfolders and loops through them
+    Verifies that directory contains a repo
+    Supports ShouldProcess
+    Requires git, of course
 
 .NOTES
     Name    : Function_Invoke-PKGitCommit.ps1
     Author  : Paula Kingsley
-    Version : 1.0.1
+    Version : 02.00.0000
     History :
     
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
 
-        v1.0.0 - 2016-06-05 - Created script
-        v1.0.1 - 2016-08-01 - Renamed with Function_ prefix
+        v1.0.0      - 2016-06-05 - Created script
+        v1.0.1      - 2016-08-01 - Renamed with Function_ prefix
+        v02.00.0000 - 2021-04-22 - Overhauled to match other functions in repo
         
-
-.EXAMPLE
-    PS C:\MyRepo> Invoke-PKGitCommit -Message "Updated some things" -AddAllTrackedChanges -Verbose
-    # Runs git commit -a -m "Updated some things" -v 
-
-        VERBOSE: PSBoundParameters: 
-	
-        Key                  Value                                          
-        ---                  -----                                          
-        Message              Updated some things
-        AddAllTrackedChanges True                                           
-        InvokeGitPush        False                                          
-        Verbose              True                                           
-        Quiet                False                                          
-        Confirm              False                                          
-        Path                 C:\MyRepo          
-        ComputerName         PKINGSLEY-04343                                
-        ScriptName           Invoke-PKGitCommit                             
-        ScriptVersion        1.0.0                                          
-
-        VERBOSE: Add all changes/stage all tracked files, and invoke 'git commit -m "Updated some things -v"' ?
-
-        [master 6e5810a] Testing invoke-pkgitcommit after adding -v
-        1 file changed, 211 insertions(+)
-        create mode 100644 Scripts/MyFile.PS1
-
-.EXAMPLE
-    PS C:\MyRepo> Invoke-PKGitCommit -Message "Updated some other things" -Quiet
-    # Runs git commit -a -m "Updated some things" and returns a boolean 
-    
-        True        
-
-.EXAMPLE
-    PS C:\MyRepo> Invoke-PKGitCommit -Message "Testing some stuff" -AddAllTrackedChanges -InvokeGitPush -Verbose
-    # Runs git commit -a -m "Testing some stuff" and runs Invoke-PKGitPush if no untracked files are present
-        
-        VERBOSE: PSBoundParameters: 
-	
-        Key                  Value                                
-        ---                  -----                                
-        Message              Testing some stuff    
-        AddAllTrackedChanges True                                 
-        InvokeGitPush        True                                 
-        Verbose              True                                 
-        Quiet                False                                
-        Confirm              False                                
-        Path                 C:\MyRepo
-        ComputerName         PKINGSLEY-04343                      
-        ScriptName           Invoke-PKGitCommit                   
-        ScriptVersion        1.0.0                                
-
-
-        VERBOSE: Add all changes/stage all tracked files, and invoke 'git commit -m "Testing some stuff" -v' ?
-
-        On branch master
-        Your branch is ahead of 'origin/master' by 1 commit.
-          (use "git push" to publish your local commits)
-        nothing to commit, working directory clean
-
-        VERBOSE: PSBoundParameters: 
-	
-        Key           Value                                
-        ---           -----                                
-        Verbose       True                                 
-        Quiet         False                                
-        Confirm       False                                
-        Path          C:\MyRepo
-        ComputerName  PKINGSLEY-04343                      
-        ScriptName    Invoke-PKGitPush                     
-        ScriptVersion 1.0.0                                
-
-
-        Push URL: https://github.com/JoeBloggs/myrepo.git
-
-        VERBOSE: Invoke 'git push -v' from the current repo 'C:\MyRepo' to remote origin 'https://github.com/JoeBloggs/myrepo.git'?
-        VERBOSE: Redirecting output streams.
-        To https://github.com/JoeBloggs/myrepo.git
-           01d597b..6e5810a  master -> master
-
-.EXAMPLE
-    PS C:\MyRepo> Invoke-PKGitCommit -Message "I like coffee" -AddAllTrackedChanges -Verbose -InvokeGitPush
-    # Runs git commit -a -m "I like coffee" and does not run Invoke-PKGitPush due to untracked files
-
-        VERBOSE: PSBoundParameters: 
-	
-        Key                  Value                                          
-        ---                  -----                                          
-        Message              I like coffee
-        AddAllTrackedChanges True                                           
-        Verbose              True                                           
-        InvokeGitPush        True                                           
-        Quiet                False                                          
-        Confirm              False                                          
-        Path                 C:\MyRepo         
-        ComputerName         PKINGSLEY-04343                                
-        ScriptName           Invoke-PKGitCommit                             
-        ScriptVersion        1.0.0                                          
-
-
-        VERBOSE: Add all changes/stage all tracked files, and invoke 'git commit -m "I like coffee" -v"' ?
-
-        On branch master
-        Your branch is up-to-date with 'origin/master'.
-        Untracked files:
-	        Scripts/NewFile.ps1
-
-        nothing added to commit but untracked files present
-
-        WARNING: 'C:\MyRepo' contains untracked files; will not invoke git-push
-
 .LINK
     https://github.com/lanwench/PKGit
+
+.EXAMPLE
+    PS C:\MyRepos\TestRepo> Invoke-PKGitCommit -AddAllTrackedChanges -Verbose
+        VERBOSE: PSBoundParameters: 
+	
+        Key                  Value                                 
+        ---                  -----                                 
+        AddAllTrackedChanges True                                  
+        Verbose              True                                  
+        RepoPath             C:\MyRepos\TestRepo                                 
+        WhatIf               False                                 
+        ScriptName           Invoke-PKGitCommit                    
+        ScriptVersion        2.0.0                                 
+        PipelineInput        False                                 
+
+
+        VERBOSE: [C:\MyRepos\TestRepo] Get folder object
+        VERBOSE: [C:\MyRepos\TestRepo] Git repo found
+        On branch master
+        Your branch is up to date with 'origin/master'.
+
+        Changes not staged for commit:
+          (use "git add <file>..." to update what will be committed)
+          (use "git restore <file>..." to discard changes in working directory)
+	        modified:   Scripts/2018-04-18 - SQL service startname changes.ps1
+
+        no changes added to commit (use "git add" and/or "git commit -a")
+        Commit message: Added ShouldProcess
+        VERBOSE: [C:\MyRepos\TestRepo] Add all changes/stage all tracked files, and invoke 'git commit -a -m "Added ShouldProcess" 2>&1'
+        [master 0d09d71] Testing commit message function
+         1 file changed, 10 insertions(+), 2 deletions(-)
+
+.EXAMPLE
+    PS C:\> Invoke-PKGitCommit -RepoPath c:\temp\demo -Verbose
+
+        VERBOSE: PSBoundParameters: 
+	
+        Key                  Value                                 
+        ---                  -----                                 
+        Verbose              True                                  
+        RepoPath             {c:\temp\demo}
+        Recurse              False                                 
+        AddAllTrackedChanges False                                 
+        WhatIf               False                                 
+        ScriptName           Invoke-PKGitCommit                    
+        ScriptVersion        2.0.0                                 
+        PipelineInput        False                                 
+
+        VERBOSE: [c:\temp\demo] Get folder object
+        VERBOSE: [c:\temp\demo] 1 Git repo(s) found
+        VERBOSE: [c:\temp\demo] Check Git status
+        On branch main
+        Your branch is up to date with 'origin/main'.
+
+        Changes to be committed:
+          (use "git restore --staged <file>..." to unstage)
+	        new file:   Scripts/SafeAccountList.ps1
+
+        Commit message: Updated account list
+        VERBOSE: [c:\temp\demo] Invoke 'git commit -m "Updated account list" 2>&1'
+        [main bad5f63] Updated account list
+         1 file changed, 1 insertion(+)
+         create mode 100644 Scripts/AccountList.ps1
+
+
+.EXAMPLE
+    PS C:\> $Arr | Invoke-PKGitCommit -Recurse -AddAllTrackedChanges -Verbose
+
+        VERBOSE: PSBoundParameters: 
+	
+        Key                  Value                  
+        ---                  -----                  
+        Recurse              True                   
+        AddAllTrackedChanges True                   
+        Verbose              True                   
+        RepoPath             
+        WhatIf               False                  
+        ScriptName           Invoke-PKGitCommit     
+        ScriptVersion        2.0.0                  
+        PipelineInput        True                   
+
+        VERBOSE: [d:\repos] 20 Git repo(s) found
+        VERBOSE: [d:\repos\prod\gists\0a1bbdf348eec659c4e5b3211c021d1e] Check Git status
+        WARNING: [d:\repos\prod\gists\0a1bbdf348eec659c4e5b3211c021d1e] Nothing to commit!
+        VERBOSE: [d:\repos\prod\Infrastructure\] Check Git status
+        On branch master
+        Your branch is up to date with 'origin/master'.
+
+        Changes not staged for commit:
+          (use "git add <file>..." to update what will be committed)
+          (use "git restore <file>..." to discard changes in working directory)
+	        modified:   AD/Scripts/Function_Get-WUStatus.ps1
+	        modified:   VMware/Scripts/VMInventory.ps1
+
+        no changes added to commit (use "git add" and/or "git commit -a")
+        Commit message: 
+        WARNING: [d:\repos\prod\Infrastructure\PowerShell] Commit message is mandatory!
+        VERBOSE: d:\repos\test\kittens] Check Git status
+        WARNING: d:\repos\test\kittens] Nothing to commit!
+        VERBOSE: [d:\repos\Sandbox] Check Git status
+        WARNING: [d:\repos\Sandbox] Nothing to commit!
 
 #>
 [CmdletBinding(
@@ -145,132 +135,177 @@ Function Invoke-PKGitCommit {
 )]
 Param(
     [Parameter(
-        Mandatory = $True,
-        HelpMessage = "Commit message"
+        ValueFromPipeline,
+        ValueFromPipelineByPropertyName,
+        HelpMessage = "Git repo path (default is current location)"
     )]
-    [String]$Message,
+    [Alias("FullName")]
+    [object[]]$RepoPath = (Get-Location).Path,
 
     [Parameter(
-        Mandatory = $False,
+        HelpMessage = "Recurse through subfolders for git repos"
+    )]
+    [switch]$Recurse,
+
+    [Parameter(
         HelpMessage = "Add all tracked changes during commmit (git commit -a)"
     )]
-    [Switch] $AddAllTrackedChanges = $False,
-
-    [Parameter(
-        Mandatory = $False,
-        HelpMessage = "Add Invoke-PKGitPush after commit"
-    )]
-    [Switch] $InvokeGitPush = $False,
-
-    [Parameter(
-        Mandatory = $False,
-        HelpMessage = "Quiet"
-    )]
-    [Switch]$Quiet = $False
+    [Switch] $AddAllTrackedChanges
 
 )
-Process {    
+Begin {    
     
-    # Version from comment block
-    [version]$Version = "1.0.1"
+    # Current version (please keep up to date from comment block)
+    [version]$Version = "02.00.0000"
 
-    # Preference
-    $ErrorActionPreference = "Stop"
-
-    # Where we are
-    $CurrentPath = (Get-Location).Path
-
-    # Show our settings
+    # How did we get here?
+    [switch]$PipelineInput = $MyInvocation.ExpectingInput
     $CurrentParams = $PSBoundParameters
+    $ScriptName = $MyInvocation.MyCommand.Name
     $MyInvocation.MyCommand.Parameters.keys | Where {$CurrentParams.keys -notContains $_} | 
-        Where {Test-Path variable:$_}| Foreach {
+        Where {Test-Path Variable:$_}| Foreach {
             $CurrentParams.Add($_, (Get-Variable $_).value)
         }
-    $CurrentParams.Add("Path",$CurrentPath)
-    $CurrentParams.Add("ComputerName",$Env:ComputerName)
-    $CurrentParams.Add("ScriptName",$MyInvocation.MyCommand.Name)
+    $CurrentParams.Add("ScriptName",$ScriptName)
     $CurrentParams.Add("ScriptVersion",$Version)
+    $CurrentParams.Add("PipelineInput",$PipelineInput)
     Write-Verbose "PSBoundParameters: `n`t$($CurrentParams | Format-Table -AutoSize | out-string )"
 
-    # Colors
-    $BGColor = $Host.UI.RawUI.BackgroundColor
-
-    # Make sure this is actually a repo
-    If (($Null = Test-PKGitRepo -ErrorAction Stop -Verbose:$False) -ne $True) {
-        $Msg = "Folder '$CurrentPath' not managed by git"
-        $Host.UI.WriteErrorLine("ERROR: $Msg")
+    If (-not ($GitCmd = Get-Command git.exe -ErrorAction SilentlyContinue)) {
+        $Msg = "Git.exe not found on '$Env:ComputerName'; please install from https://git-scm.com/download/win"
+        Write-Error $Msg
         Break
     }
+
+    $StartLocation = Get-Location
+    $Activity = "Create git commit message"
+    If ($AddAllTrackedChanges.IsPresent) {$Activity += " (with option to add untracked files)"}
+}
+
+Process {
     
-    # If it is,
-    Try {
-
-        If ($Quiet.IsPresent) {
-            $IsQuiet = $True
-            
-        }
-        Else {$IsQuiet = $False}
-        If ($CurrentParams.Verbose) {
-            $IsVerbose = $True
-            $v = " -v"
-        }
-        Else {$IsVerbose = $False;$v = $Null}
-
-        # Command
-        $Commit = "git commit -m ""$Message$V"""
-        $CommitConfirm = "Invoke '$Commit'"
-
-        
-        If ($AddAllTrackedChanges.IsPresent) {
-            $CommitConfirm = ("Add all changes/stage all tracked files, and " + $CommitConfirm.replace("Invoke","invoke") )
-            $Commit = "git commit -a -m ""$Message$V """
-        }
-
-        # Redirect output
-        $Cmd = $Commit + " 2>&1"
-
-        Write-Verbose "$CommitConfirm ?`n"
-        
-        # Prompt and go
-        If ($PSCmdlet.ShouldProcess($CurrentPath,$CommitConfirm)) {
-            $Results = Invoke-Expression -Command $Cmd -ErrorAction Stop -Verbose:$False -WarningAction SilentlyContinue
-            If (-not $Quiet.IsPresent) {Write-Output $Results}
-            Else {$True}
-            
-            If ($InvokeGitPush.IsPresent) {
-                If ($Results -notlike "*untracked files present*") {
-                    Try {
-                        Invoke-PKGitPush -Verbose:$IsVerbose -Quiet:$IsQuiet
-                    }
-                    Catch {
-                        If (-not $Quiet.IsPresent) {
-                            $Msg = "Can't run Invoke-PKGitPush"
-                            $ErrorDetails = $_.Exception.Message
-                            $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
-                        }
-                        Else {$False}
-                    }
-                }
-                Else {
-                    If (-not $Quiet.IsPresent) {
-                        $FGColor = "Yellow"
-                        $Msg = "`nWARNING: '$CurrentPath' contains untracked files; will not invoke git-push"
-                        $Host.UI.WriteLine($FGColor,$BGColor,$Msg)
-                    }
-                }
+    Foreach ($Item in $RepoPath) {
+        $Current = $Null
+        If (-not ($Item -is [System.IO.FileSystemInfo])) {
+            If ($Item -is [string]) {
+                $Current = $Item
             }
-
+            If ($Item -is [System.Management.Automation.PathInfo]) {
+                $Current = $Item.Path
+            }
+            $Msg = "Get folder object"
+            Write-Verbose "[$Current] $Msg"
+            Write-Progress -Activity $Activity -CurrentOperation $Msg -Status $Current
+            $FolderObj = Get-Item -Path $Item -Verbose:$False 
+        }
+        Elseif ($Item -is [System.IO.FileSystemInfo]) {
+            $Current = $Item.FullName
+            $FolderObj = $Item
         }
         Else {
-            $FGColor = "Yellow"
-            $Msg = "Operation cancelled by user"
-            $Host.UI.WriteLine($FGColor,$BGColor,$Msg)
+            $Msg = "Unknown object type; please use a valid path string or directory object"
+            Throw $Msg
         }
-    }
-    Catch {
-        $Msg = "General error"
-        $ErrorDetails = $_.Exception.Message
-        $Host.UI.WriteErrorLine("ERROR: $Msg`n$ErrorDetails")
-    }
+
+        If ($FolderObj) {
+        
+            $Msg = "Look for git repo"
+            If ($Recurse.IsPresent) {$Msg += " (search subfolders recursively)"}
+            Write-Progress -Activity $Activity -CurrentOperation $Msg -Status $Current
+            If ($GitRepos = $FolderObj | Get-Childitem -Recurse:$Recurse -Filter .git -Directory -Attributes H -ErrorAction Stop) {
+            
+                $Msg = "$($GitRepos.Count) Git repo(s) found"
+                Write-Verbose "[$($Folder.FullName)] $Msg"
+
+                Foreach ($GitFolder in $GitRepos) {
+                    
+                    $GitFolder = ($GitFolder.FullName | Split-Path -Parent)
+                    Set-Location -Path $GitFolder
+                    $Msg = "Check Git status"
+                    Write-Verbose "[$($GitFolder)] $Msg"
+
+                    Try {
+                        $Status = Invoke-Expression "git status 2>&1"
+                        #$Null = Set-Location $StartLocation
+                    }
+                    Catch {}
+
+                    If ($Status -match "nothing to commit") {
+                        $Msg = "Nothing to commit!"
+                        Write-Warning "[$($GitFolder)] $Msg"
+                    }
+                    Else {
+                        Write-Output $Status
+                        
+                        $Regex = [regex]::Escape('nothing added to commit but untracked files present (use "git add" to track)')
+                        If ($Status -match $Regex) {
+                            $Msg = "Nothing to commmit but untracked files found; invoke 'git add *' before commit"
+                            Write-Verbose "[$($GitFolder)] $Msg"
+                            $ConfirmMsg = "Untracked files found; run 'git add *' to add all untracked files before commit"
+                            If ($PSCmdlet.ShouldProcess($GitFolder,$ConfirmMsg)) {
+                                Try {
+                                    Invoke-Expression "git add * 2>&1"
+                                }
+                                Catch {}
+                            }
+                        }
+                        $Regex = [regex]::Escape('no changes added to commit (use "git add" and/or "git commit -a")')
+                        If ($Status -match $Regex -and (-not ($AddAllTrackedChanges.IsPresent))) {
+                            $ConfirmMsg = "Untracked files found; prompt to reset -AddAllTrackedChanges for this repo"
+                            Write-Verbose "[$($GitFolder)] $Msg"
+                            [switch]$Revert = $False
+                            If ($PSCmdlet.ShouldProcess($GitFolder,$ConfirmMsg)) {
+                                $Revert = $True
+                                $AddAllTrackedChanges = $True
+                            }
+                        }
+
+                        If (($Message = Read-Host -Prompt "Commit message").length -gt 0) {
+                            
+                            If ($AddAllTrackedChanges.IsPresent) {
+                                $Commit = "git commit -a -m ""$Message"" 2>&1"
+                                $ConfirmMsg = "Add all changes/stage all tracked files, and invoke '$Commit'"
+                            }
+                            Else {
+                                $Commit = "git commit -m ""$Message"" 2>&1"    
+                                $ConfirmMsg = "Invoke '$Commit'"
+                            }
+                
+                            Write-Verbose "[$($GitFolder)] $ConfirmMsg"
+                            Write-Progress -Activity $Activity -CurrentOperation $ConfirmMsg -Status $Current
+                            If ($PSCmdlet.ShouldProcess($GitFolder.FullName,$ConfirmMsg)) {
+                                Try {
+                                    Invoke-Expression $Commit 
+                                }
+                                Catch {}
+                            }
+                            Else {
+                                $Msg = "Operation cancelled by user"
+                                Write-Warning "[$($GitFolder)] $Msg"
+                            }
+                        }
+                        Else {
+                            $Msg = "Commit message is mandatory!"
+                            Write-Warning "[$($GitFolder)] $Msg"
+                        }
+                    }
+
+                    If ($Revert.IsPresent) {$AddAllTrackedChanges = $False}
+
+                } # end for each folder
+            }
+            Else {
+                $Msg = "No Git repo found"
+                If (-not $Recurse.IsPresent) {$Msg += " (try -Recurse)"}
+                Write-Warning "[$($Folder.FullName)] $Msg"
+            }
+
+        } #end if folder object
+    
+    } #end foreach path 
+}
+End {
+    Set-Location $StartLocation
+    Write-Progress -Activity * -Completed
 }
 } #end Invoke-PKGitCommit

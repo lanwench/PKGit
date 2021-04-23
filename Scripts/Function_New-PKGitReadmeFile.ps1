@@ -16,7 +16,7 @@ function New-PKGitReadmeFile {
     Name    : Function_New-PKGitReadmeFile.ps1
     Created : 2017-02-10
     Author  : Paula Kingsley
-    Version : 03.00.0000
+    Version : 04.00.0000
     History:  
         
         ** PLEASE KEPEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
@@ -27,6 +27,7 @@ function New-PKGitReadmeFile {
         v2.1.0      - 2017-08-22 - Added LabelName parameter, to choose Synopsis or Description for function content
         v02.02.0000 - 2017-10-30 - Added 'Description', minor cosmetic changes
         v03.00.0000 - 2019-07-22 - General updates, help/examples
+        v04.00.0000 - 2021-04-19 - Added option to include function version, if found (may not always work!)
 
 .LINK
     https://github.com/MathieuBuisson/Powershell-Utility/tree/master/ReadmeFromHelp
@@ -48,6 +49,9 @@ function New-PKGitReadmeFile {
 
 .PARAMETER Author
     Full name of author (by default will use Author property from .psd1 if populated)
+
+.PARAMETER IncludeFunctionVersion
+    Attempts to find a function version and add it to the table if found
 
 .PARAMETER Force
     Force overwrite if README.md already exists (will rename old file and move to user's temp directory)
@@ -257,6 +261,11 @@ Param(
     [string]$Author,
 
     [Parameter(
+        HelpMessage = "Attempts to find a function version and add it to the table if found"
+    )]
+    [Switch]$IncludeFunctionVersion,
+
+    [Parameter(
         HelpMessage = "Force overwrite if README.md already exists (will rename old file and move to user's temp directory)"
     )]
     [Switch]$Force,
@@ -271,7 +280,7 @@ Param(
 Begin {
 
     # Current version (please keep up to date from comment block)
-    [version]$Version = "03.00.0000"
+    [version]$Version = "04.00.0000"
 
     # Show our settings
     $Source = $PSCmdlet.ParameterSetName
@@ -311,6 +320,16 @@ Begin {
         $Host.UI.WriteErrorLine("$Message")
     }
 
+    # Function to look through a function definition and grab the version 
+    Function GetVersion(){
+        Param([Parameter(ValueFromPipeline,Mandatory)]$Command)
+        Begin{}
+        Process{
+        $VersionLine = ((Get-Command $Command -all | Select -ExpandProperty Definition) -split("`n") | 
+            Select-String '[version]$Version' -SimpleMatch).ToString().Trim()
+        [regex]::Matches($VersionLine, '(?<=\").+?(?=\")').Value
+        }
+    }
     #endregion Functions
 
     # General purpose splat
@@ -335,6 +354,7 @@ Begin {
     
     # Console output
     $Activity = "Create new Github-flavored markdown README.md file for PowerShell module '$ModuleName'"
+    If ($IncludeFunctionVersion.IsPresent) {$Activity += " (attempt to look up function versions)"}
     $Msg = "BEGIN: $Activity"
     $Msg | Write-MessageInfo -FGColor Yellow -Title
 }
@@ -421,6 +441,7 @@ Process {
             }
 
             $Lines = (Get-Content $ExistingFile.FullName | Measure-Object -Line).Lines
+
             $Found = [PSCustomObject]@{
                 Name       = $ExistingFile.Name
                 Path       = $ExistingFile.FullName
@@ -490,8 +511,7 @@ Process {
                 Write-Warning $Msg
             }
         }
-       
-    
+
         # Check for Requires statements
         $FirstLine = $ModuleObj.Definition -split "`n" | Select-Object -First 1
         If ($FirstLine -like "#Requires*") {
@@ -525,6 +545,7 @@ Process {
         $Readme = @()
 
         #region Module description
+        $Commands = @()
         $Commands = Get-Command -Module $ModuleObj @StdParams | Where-Object {$_.CommandType -ne "Alias"}
         $CommandsCount = $($Commands.Count)
         $Msg = "Found $Commandscount command(s) in this module" # :`n * $(($Commands.Name | Sort) -join("`n * "))"
@@ -566,33 +587,67 @@ Process {
         $Readme += "$Spacer## Notes"
         $Readme += "$Spacer`_All code should be presumed to be written by $Author unless otherwise specified (see the context help within each function for more information, including credits)._"
         $Readme += "$Spacer`_Changelogs are generally found within individual functions, not per module._"
-    
-        # Commands
-        $Readme += "$Spacer## Commands"
-        $Readme += "$Spacer|**Command**|**$LabelName**|"
-        $Readme += "|---|---|"
+        
+        # If we want to search for versioned functions and add that as a column in our table...
+        If ($IncludeFunctionVersion.IsPresent) {
+            # Commands
+            $Readme += "$Spacer## Commands"
+            $Readme += "$Spacer|**Command**|**Version**|**$LabelName**|"
+            $Readme += "|---|---|---|"
 
-        # Get commands
-        Foreach ($Command in ($Commands| Sort)) {
+            # Get commands
+            Foreach ($Command in ($Commands| Sort)) {
 
-            "* $($Command.Name)" | Write-MessageInfo -FGColor White
-            Try {
-                If (-not ($Output = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$LabelName)) {
-                    If (-not ($Output = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$Alt)) {
-                        $Msg = "No '$LabelName' or '$Alt' help found for $($Command.Name)"
-                        $Msg | Write-MessageError
+                "* $($Command.Name)" | Write-MessageInfo -FGColor White
+                Try {
+                    If (-not ($CommandHelp = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$LabelName)) {
+                        If (-not ($CommandHelp = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$Alt)) {
+                            $Msg = "No '$LabelName' or '$Alt' help found for $($Command.Name)"
+                            $Msg | Write-MessageError
+                        }         
+                    }
+                    
+                    If ($CommandHelp) {
+                        If (-not ($VerInfo = GetVersion -Command $Command)) {$VerInfo = "(n/a)"} 
+                        $Readme += "|**$($Command.Name)**|$VerInfo|$($CommandHelp -replace("`n","<br/>"))|"
                     }
                 }
-                If ($Output) {
-                    $Readme += "|**$($Command.Name)**|$($Output -replace("`n","<br/>"))|"
+                Catch {
+                    $Msg = "Failed to get comment-based help for '$($Command.Name)'"
+                    If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
+                    $Msg | Write-MessageError
                 }
-            }
-            Catch {
-                $Msg = "Failed to get comment-based help for '$($Command.Name)'"
-                If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                $Msg | Write-MessageError
-            }
-        } #end foreach function/command
+            } #end foreach function/command
+        }
+
+        Else {
+            # Commands
+            $Readme += "$Spacer## Commands"
+            $Readme += "$Spacer|**Command**|**$LabelName**|"
+            $Readme += "|---|---|"
+
+            # Get commands
+            Foreach ($Command in ($Commands| Sort)) {
+
+                "* $($Command.Name)" | Write-MessageInfo -FGColor White
+                Try {
+                    If (-not ($CommandHelp = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$LabelName)) {
+                        If (-not ($CommandHelp = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$Alt)) {
+                            $Msg = "No '$LabelName' or '$Alt' help found for $($Command.Name)"
+                            $Msg | Write-MessageError
+                        }
+                    }
+                    If ($CommandHelp) {
+                        $Readme += "|**$($Command.Name)**|$($CommandHelp -replace("`n","<br/>"))|"
+                    }
+                }
+                Catch {
+                    $Msg = "Failed to get comment-based help for '$($Command.Name)'"
+                    If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
+                    $Msg | Write-MessageError
+                }
+            } #end foreach function/command
+        }
 
         $Msg = "Successfully created README.md content for module"
         $Msg | Write-MessageInfo -FGColor Green
