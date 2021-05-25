@@ -13,12 +13,13 @@ Function Get-PKGitEmail {
     Name    : Function_Get-PKGitEmail.ps1 
     Created : 2019-04-09
     Author  : Paula Kingsley
-    Version : 01.00.0000
+    Version : 01.01.0000
     History :
 
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
 
         v01.00.0000 - 2019-04-09 - Created script
+        v01.01.0000 - 2021-05-24 - Simplified, removed -Quiet, fixed set-location
 
 .PARAMETER Path
     Path to git repository (default is current directory)
@@ -26,90 +27,67 @@ Function Get-PKGitEmail {
 .PARAMETER Scope
     git config scope to check: local, global, or all (default is all)
 
-.PARAMETER Quiet
-    Suppress non-verbose console output
-
 .EXAMPLE
-    PS C:\> Get-PKGitEmail -Verbose
+    PS C:\Repos> $Z = (Get-Childitem -Directory -Recurse | Select -first 10 | Get-PKGitEmail -Scope All -Verbose) | Format-Table -Autosize
 
         VERBOSE: PSBoundParameters: 
 	
-        Key           Value                                
-        ---           -----                                
-        Verbose       True                                 
-        Path          C:\Users\jbloggs\mystuff
-        Scope         All                                  
-        Quiet         False                                
-        PipelineInput False                                
-        ScriptName    Get-PKGitEmail                       
-        ScriptVersion 1.0.0                                
+        Key           Value         
+        ---           -----         
+        Scope         All           
+        Verbose       True          
+        Path                        
+        PipelineInput True          
+        ScriptName    Get-PKGitEmail
+        ScriptVersion 1.1.0         
+
+        WARNING: [LAPTOP] Pipeline input detected; scope will be reset to 'Local'
+
+        VERBOSE: Commands: 
+            TestGitRepo : git rev-parse --is-inside-work-tree 2>&1
+            Local       : git config --local --get user.email
+            Global      : git config --global --get user.email
 
 
+        VERBOSE: [BEGIN: Get-PKGitEmail] Get local git config user email address
+        VERBOSE: [LAPTOP] 'C:\Repos\Personal\34d08ae7d489b1e87d50c1614e6cabbb' contains a git repository
+        VERBOSE: [LAPTOP] 'C:\Repos\Personal\blah' contains a git repository
+        VERBOSE: [LAPTOP] 'C:\Repos\Personal\blah2' contains a git repository
+        VERBOSE: [LAPTOP] 'C:\Repos\Personal\capas' contains a git repository
+        WARNING: [LAPTOP] 'C:\Repos\Personal\gists' does not appear to contain a git repository
+        VERBOSE: [LAPTOP] 'C:\Repos\Personal\Testing' contains a git repository
+        VERBOSE: [LAPTOP] 'C:\Repos\Personal\Sandbox' contains a git repository
+        VERBOSE: [LAPTOP] 'C:\Repos\Personal\ADTools' contains a git repository
+        VERBOSE: [LAPTOP] 'C:\Repos\Personal\ChefStuff' contains a git repository
+        VERBOSE: [END: Get-PKGitEmail] Get local git config user email address
 
-        VERBOSE: [WORKSTATION] Prerequisites
-        VERBOSE: [WORKSTATION] Verify git.exe
-        VERBOSE: [WORKSTATION] git.exe version 2.18.0.1 found in 'C:\Program Files\Git\cmd'
-        
-        BEGIN  : Get global and local git config user email addresses
-        
-        VERBOSE: [WORKSTATION] 'C:\Users\jbloggs\mystuff' contains a git repository
-
-
-        ComputerName : WORKSTATION
-        Scope        : Local
-        Path         : C:\Users\jbloggs\mystuff
-        Command      : git config --local --get user.email
-        Email        : jbloggs@users.noreply.github.com
-        Messages     : 
-
-        ComputerName : WORKSTATION
-        Scope        : Global
-        Path         : n/a
-        Command      : git config --global --get user.email
-        Email        : joseph.bloggs@corpdomain.com
-        Messages     : 
-
-        END    : Get global and local git config user email addresses
-
-
+        ComputerName    Scope Path                                      Email                               Messages                                                            
+        ------------    ----- ----                                      -----                               -------                                                            
+        LAPTOP Local C:\Repos\Personal\34d08ae7d489b1e87d50c1614e6c                                         No local git email setting found; try Set-PKGitEmail                
+        LAPTOP Local C:\Repos\Personal\blah                             joebloggs@megacorp.com                                                                            
+        LAPTOP Local C:\Repos\Personal\blah2                            joebloggs@megacorp.com                                                                            
+        LAPTOP Local C:\Repos\Personal\capas                                                                No local git email setting found; try Set-PKGitEmail                
+        LAPTOP Local C:\Repos\Personal\gists                            Error                               fatal: not a git repository (or any of the parent directories): .git
+        LAPTOP Local C:\Repos\Personal\Testing                          madamemax@users.noreply.github.com                                                                     
+        LAPTOP Local C:\Repos\Personal\Sandbox                          madamemax@users.noreply.github.com                                                                     
+        LAPTOP Local C:\Repos\Personal\ADTools                          madamemax@users.noreply.github.com                                                                     
+        LAPTOP Local C:\Repos\Personal\ChefStuff                        madamemax@users.noreply.github.com                                                                     
+       
 .EXAMPLE
-    PS C:\> Get-childitem -Path c:\users\jbloggs\repos | Get-PKGitEmail -Quiet | Format-Table -AutoSize
+    PS C:\Repos\Corp\Profiles> Get-PKGitEmail
 
-        WARNING: [WORKSTATION8] Pipeline input detected; scope will be reset to 'Local'
-        WARNING: [WORKSTATION8] 'c:\users\jbloggs\repos\Modules' does not appear to contain a git repository
+    ComputerName : WORKSTATION14
+    Scope        : Local
+    Path         : C:\Repos\Corp\Profiles
+    Email        : 
+    Messages     : No local git email setting found; try Set-PKGitEmail
 
-        ComputerName Scope Path                               Command                                  Email                             Messages                                                            
-        ------------ ----- ----                               -------                                  -----                             --------                                                            
-        WORKSTATION8 Local c:\users\jbloggs\repos\Modules     git rev-parse --is-inside-work-tree 2>&1 Error                             fatal: not a git repository (or any of the parent directories): .git
-        WORKSTATION8 Local c:\users\jbloggs\repos\profiles    git config --local --get user.email      jbloggs@users.noreply.github.com                                                                     
-        WORKSTATION8 Local c:\users\jbloggs\repos\chefprod    git config --local --get user.email      jbloggs@users.noreply.github.com 
-        WORKSTATION8 Local c:\users\jbloggs\repos\tools       git config --local --get user.email      jbloggs@users.noreply.github.com                                                                     
-        WORKSTATION8 Local c:\users\jbloggs\repos\kittens     git config --local --get user.email      hellokitty@users.noreply.github.com                                                                     
-        WORKSTATION8 Local c:\users\jbloggs\repos\Sandbox     git config --local --get user.email      jbloggs@users.noreply.github.com                                                                               
-    
+    ComputerName : WORKSTATION14
+    Scope        : Global
+    Path         : -
+    Email        : joe.bloggs@internal.megacorp.com
+    Messages     : 
 
-.EXAMPLE
-    PS C:\> Get-PKGitEmail -Path c:\users\jbloggs\catvideos
-
-        BEGIN  : Get global and local git config user email addresses
-
-        WARNING: [LAPTOP] 'c:\users\jbloggs\catvideos' does not appear to contain a git repository
-
-        ComputerName : LAPTOP
-        Scope        : Local
-        Path         : c:\users\jbloggs\catvideos
-        Command      : git rev-parse --is-inside-work-tree 2>&1
-        Email        : Error
-        Messages     : fatal: not a git repository (or any of the parent directories): .git
-
-        ComputerName : LAPTOP
-        Scope        : Global
-        Path         : n/a
-        Command      : git config --global --get user.email
-        Email        : joe.bloggs@corp.net
-        Messages     : 
-
-        END    : Get global and local git config user email addresses
 
 #>
 
@@ -130,18 +108,13 @@ Param(
     )]
     [ValidateNotNullOrEmpty()]
     [ValidateSet("All","Global","Local")]
-    [string]$Scope = "All",
-
-    [Parameter(
-        HelpMessage = "Suppress non-verbose console output"
-    )]
-    [Switch]$Quiet
+    [string]$Scope = "All"
 )
 
 Begin {
     
     # Current version (please keep up to date from comment block)
-    [version]$Version = "01.00.0000"
+    [version]$Version = "01.01.0000"
 
     # How did we get here
     $ScriptName = $MyInvocation.MyCommand.Name
@@ -164,30 +137,13 @@ Begin {
     
     #region Prerequisites
 
-    $Msg = "Prerequisites"
-    Write-Verbose "[$Env:ComputerName] $Msg"
-
-    $Msg = "Verify git.exe"
-    Write-Verbose "[$Env:ComputerName] $Msg"
-
-    If (-not ($GitCmd = Get-Command git.exe -ErrorAction SilentlyContinue)) {
+    If (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
         $Msg = "git.exe not found in path"
-        $Host.UI.WriteErrorLine("ERROR  : [$ComputerName] $Msg")
+        $Host.UI.WriteErrorLine("ERROR: $Msg")
         Break
-    }
-    Else {
-        $Msg = "git.exe version $($GitCmd.Version) found in '$(Split-Path $GitCmd.Source)'"
-        Write-Verbose "[$Env:ComputerName] $Msg"
     }
 
     #endregion Prerequisites
-
-    # Make sure we're not repeating ourselves
-    If ($PipelineInput.IsPresent -and $CurrentParams.Scope -ne "Local") {
-        $Msg = "Pipeline input detected; scope will be reset to 'Local'"
-        Write-Warning "[$Env:ComputerName] $Msg"
-        $Scope = "Local"
-    }
 
     #region Functions
 
@@ -198,14 +154,14 @@ Begin {
         $ScriptBlock = [scriptblock]::Create($Cmd)
         If (($Results = Invoke-Command -ScriptBlock $ScriptBlock) -ne $True) {
             $Msg = $Results
-            New-Object PSObject -Property ([ordered]@{
+            [PSCustomObject]@{
                 ComputerName = $Env:ComputerName
                 Scope        = "Local"
                 Path         = $Path
-                Command      = $Cmd
+                #Command      = $Cmd
                 Email        = "Error"
                 Messages     = $Msg
-            }) 
+            }
         }    
         Set-Location $CurrentLocation
     }
@@ -215,18 +171,18 @@ Begin {
         $ScriptBlock = [scriptblock]::Create($Cmd)
         If (-not ($Results = Invoke-Command -ScriptBlock $ScriptBlock)) {
             $Msg = "No global git email setting found; try Set-PKGitEmail"
-            $Results = "Error"
+            #$Results = "Error"
         }
         Else {$Msg = $Null}
 
-        New-Object PSObject -Property ([ordered]@{
+        [PSCustomObject]@{
             ComputerName = $Env:ComputerName
             Scope        = "Global"
-            Path         = "n/a"
-            Command      = $Cmd
+            Path         = "-"
+            #Command      = $Cmd
             Email        = $Results
             Messages     = $Msg
-        }) 
+        }
     }
 
     Function GetLocalEmail($Path){
@@ -236,24 +192,30 @@ Begin {
         $ScriptBlock = [scriptblock]::Create($Cmd)
         If (-not ($Results = Invoke-Command -ScriptBlock $ScriptBlock)) {
             $Msg = "No local git email setting found; try Set-PKGitEmail"
-            $Results = "Error"
+            #$Results = "Error"
         }
         Else {$Msg = $Null}
 
-        New-Object PSObject -Property ([ordered]@{
+        [PSCustomObject]@{
             ComputerName = $Env:ComputerName
             Scope        = "Local"
             Path         = $Path
-            Command      = $Cmd
+            #Command      = $Cmd
             Email        = $Results
             Messages     = $Msg
-        })
+        }
         Set-Location $CurrentLocation 
     }
 
     #endregion Functions
     
     #region Define actions
+    
+    If ($PipelineInput.IsPresent -and $CurrentParams.Scope -ne "Local") {
+        $Msg = "Pipeline input detected; scope will be reset to 'Local'"
+        Write-Warning "[$Env:ComputerName] $Msg"
+        $Scope = "Local"
+    }
 
     [switch]$GetLocal = $False
     [switch]$GetGlobal = $False
@@ -283,12 +245,17 @@ Begin {
     # This might get reset, so...
     $OriginalLocation = Get-Location
 
-    $BGColor = $host.UI.RawUI.BackgroundColor
-    $Msg = "BEGIN  : $Activity"
-    $FGColor = "Yellow"
-    If (-not $Quiet.IsPresent) {$Host.UI.WriteLine($FGColor,$BGColor,$Msg)}
-    Else {Write-Verbose $Msg}
-    
+    $Commands = [PSCustomObject]@{
+        TestGitRepo = "git rev-parse --is-inside-work-tree 2>&1"
+        Local = "git config --local --get user.email"
+        Global = "git config --global --get user.email"
+    }
+    Write-Verbose "Commands: `n`t$($Commands | Format-List | out-string )"
+
+    $Msg = "[BEGIN: $Scriptname] $Activity" 
+    Write-Verbose $Msg
+
+
 }
 Process {
     
@@ -317,22 +284,19 @@ Process {
         Catch {
             $Msg = "'$Path' does not appear to contain a git repository"
             If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-            If (-not $Quiet.IsPresent) {$Host.UI.WriteErrorLine("[$Env:ComputerName] $Msg")}
-            Else {Write-Warning "[$Env:ComputerName] $Msg"}
-        }        
-            
-            
+            Write-Warning "[$Env:ComputerName] $Msg"
+        }
     }
     
     If ($GetGlobal.IsPresent) {
+
         Try {
             GetGlobalEmail -ErrorAction Stop
         }
         Catch {
             $Msg = "Operation failed"
             If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-            If (-not $Quiet.IsPresent) {$Host.UI.WriteErrorLine("[$Env:ComputerName] $Msg")}
-            Else {Write-Warning "[$Env:ComputerName] $Msg"}
+            Write-Error "[$Env:ComputerName] $Msg"
         }
     }
 
@@ -342,10 +306,8 @@ End {
     # Reset location
     Set-Location $OriginalLocation
 
-    $Msg = "END    : $Activity"
-    $FGColor = "Yellow"
-    If (-not $Quiet.IsPresent) {$Host.UI.WriteLine($FGColor,$BGColor,$Msg)}
-    Else {Write-Verbose $Msg}
+    $Msg = "[END: $Scriptname] $Activity" 
+    Write-Verbose $Msg
 }
 
 } #end Get-PKGitEmail

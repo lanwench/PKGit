@@ -1,5 +1,5 @@
 ﻿#Requires -Version 4
-function New-PKGitReadmeFile {
+function New-ToolboxReadmeFile {
 <#
 .SYNOPSIS
     Generates a github markdown README.md file from the comment-based help contained in the specified PowerShell module file
@@ -15,23 +15,25 @@ function New-PKGitReadmeFile {
     Works with any PowerShell module (script or compiled) and any help (comment-based or XML-based) as long as it is accessible via Get-Help
 
 .NOTES 
-    Name    : Function_New-PKGitReadmeFile.ps1
+    Name    : Function_New-ToolboxReadmeFile.ps1
     Created : 2017-02-10
     Author  : Paula Kingsley
-    Version : 04.01.0000
+    Version : 05.00.0000
     History:  
         
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
 
         v1.0.0      - 2017-02-10 - Adapted Mathieu Buisson's original module script (see link)
         v1.1.0      - 2017-02-10 - Changed formatting output/headers
-        v2.0.0      - 2017-05-16 - Renamed from New-PKGitReadmeFromHelp, added rename for old file found
+        v2.0.0      - 2017-05-16 - Renamed from New-ToolboxReadmeFromHelp, added rename for old file found
         v2.1.0      - 2017-08-22 - Added LabelName parameter, to choose Synopsis or Description for function content
         v02.02.0000 - 2017-10-30 - Added 'Description', minor cosmetic changes
         v03.00.0000 - 2019-07-22 - General updates, help/examples
         v04.00.0000 - 2021-04-19 - Added parameter to include function version, if found (may not always work!)
         v04.01.0000 - 2021-04-26 - Changed function version check to opt-out, cosmetic changes
-
+        v05.00.0000 - 2021-05-24 - Simplified, removed custom console output functions, removed Quiet, added switch to 
+                                   output file content rather than defaulting to same
+         
 .LINK
     https://github.com/MathieuBuisson/Powershell-Utility/tree/master/ReadmeFromHelp
 
@@ -59,15 +61,129 @@ function New-PKGitReadmeFile {
 .PARAMETER Force
     Force overwrite if README.md already exists (will rename old file and move to user's temp directory)
 
-.PARAMETER Quiet
-    Suppress non-verbose console output
+.PARAMETER DisplayFileContent
+    If new README.md file created, output content to console (default is to output new file object)
 
 .EXAMPLE
-    PS C:\> 
+    PS C:\> New-ToolboxReadmeFile -ModuleName Toolbox -Author "Joe Bloggs" -Force -Verbose
+        VERBOSE: PSBoundParameters: 
+	
+        Key                Value              
+        ---                -----              
+        ModuleName         Toolbox              
+        Force              True               
+        Verbose            True               
+        ModuleFile                            
+        ModuleDescription                     
+        LabelName          Synopsis           
+        Author             Joe Bloggs                   
+        SkipVersionCheck   False              
+        DisplayFileContent False              
+        ParameterSetName   Module             
+        PipelineInput      False              
+        ScriptName         New-ToolboxReadmeFile
+        ScriptVersion      5.0.0              
+
+
+
+        VERBOSE: [BEGIN: New-ToolboxReadmeFile] Create new Github-flavored markdown README.md file for PowerShell module 'Toolbox' (attempt to look up function versions)
+        VERBOSE: [Toolbox] Get or verify module object
+        VERBOSE: [Toolbox] Found module 'Toolbox' version 1.18.0 in C:\Repos\Toolbox
+        VERBOSE: [Toolbox] Look for existing README.md file
+        VERBOSE: [Toolbox] Existing 'README.md' file found; -Force specified
+        VERBOSE: 
+
+        Name       : README.md
+        Path       : C:\Repos\Toolbox\README.md
+        LineCount  : 35
+        SizeKB     : 04.38
+        ReadOnly   : False
+        CreateDate : 2021-04-22 5:31:39 PM
+        LastWrite  : 2021-05-24 5:49:17 PM
+
+
+        VERBOSE: [Toolbox] Get general module information
+        VERBOSE: [Toolbox] Got module description
+        VERBOSE: [Toolbox] Found author name 'Joe Bloggs' in module
+        VERBOSE: [Toolbox] Found Requires statements and/or PowerShell version requirements
+        VERBOSE: [Toolbox] Found required modules list
+        VERBOSE: [Toolbox] Create README.md content
+        VERBOSE: [Toolbox] Found 4 functions in module
+        VERBOSE: * Get-ToolboxEmail
+        VERBOSE: * Get-SQLServices
+        VERBOSE: * Get-WorkingFiles
+        VERBOSE: * Invoke-CustomCommand
+        VERBOSE: * Test-Repo
+        VERBOSE: [Toolbox] Successfully created README.md content for module
+        VERBOSE: [Toolbox] Rename and move existing README.md file
+        VERBOSE: [Toolbox] Moved 'C:\Repos\Toolbox\README.md' to C:\Users\jbloggs\AppData\Local\Temp\Toolbox_2021-05-24_05-54_backup_readme.md
+        VERBOSE: [Toolbox] Save output to new README.md file
+
+            Directory: C:\Repos\Toolbox
+
+            Mode                 LastWriteTime         Length Name                                                                                                                                                                
+            ----                 -------------         ------ ----                                                                                                                                                                
+            -a----        2021-05-24   5:54 PM           4484 README.md                                                                                                                                                           
+        
+        VERBOSE: [END: New-ToolboxReadmeFile] Create new Github-flavored markdown README.md file for PowerShell module 'Toolbox' (attempt to look up function versions)
 
 .EXAMPLE
-    PS C:\> 
+    PS C:\> New-PKGitReadmeFile -ModuleName LabUtilities -Author "Rainbow Dash" -Force
 
+        WARNING: Author name 'Rainbow Dash' specified for README.md will conflict with 'jbloggs-test' specified in module
+        WARNING: No native module description found; -ModuleDescription not specified
+
+            Directory: C:\Repos\Lab\LabUtilities
+
+
+        Mode                 LastWriteTime         Length Name                                                                                                                                                                
+        ----                 -------------         ------ ----                                                                                                                                                                
+        -a----        2021-05-24   6:01 PM           2046 README.md   
+
+.EXAMPLE
+    PS C:\> New-PKGitReadmeFile -ModuleName Kittens -ModuleDescription "Testing new  module process" -Force -DisplayFileContent
+
+        # Module kittens
+
+        ## About
+        |||
+        |---|---|
+        |**Name** |kittens|
+        |**Author** |ksmith|
+        |**Type** |Script|
+        |**Version** |1.0.0|
+        |**Description**|Testing new  module process|
+        |**Date**|README.md file generated on Monday, May 24, 2021 6:04:00 PM|
+
+        This module contains 2 PowerShell functions or commands
+
+        All functions should have reasonably detailed comment-based help, accessible via Get-Help ... e.g., 
+          * `Get-Help Do-Something`
+          * `Get-Help Do-Something -Examples`
+          * `Get-Help Do-Something -ShowWindow`
+
+        ## Prerequisites
+
+        Computers must:
+
+          * be running PowerShell 4 or later
+
+        ## Installation
+
+        Clone/copy entire module directory into a valid PSModules folder on your computer and run `Import-Module kittens`
+
+        ## Notes
+
+        _All code should be presumed to be written by ksmith unless otherwise specified (see the context help within each function for more information, including credits)._
+
+        _Changelogs are generally found within individual functions, not per module._
+
+        ## Commands
+
+        |**Command**|**Version**|**Synopsis**|
+        |---|---|---|
+        |**Get-Email**|01.01.0000|Returns the current user's Mail attribute from AD, if present|
+        |**Get-SQLSvc**|01.00.0000|Returns all SQL services using remote WMI query|
 
 
 #>
@@ -131,16 +247,15 @@ Param(
     [Switch]$Force,
 
     [Parameter(
-        HelpMessage = "Suppress non-verbose console output"
+        HelpMessage = "If new README.md file created, output content to console (default is to output new file object)"
     )]
-    [Alias("SuppressConsoleOutput")]
-    [Switch] $Quiet
+    [Switch]$DisplayFileContent
 )
 
 Begin {
 
     # Current version (please keep up to date from comment block)
-    [version]$Version = "04.01.0000"
+    [version]$Version = "05.00.0000"
 
     # Show our settings
     $Source = $PSCmdlet.ParameterSetName
@@ -157,29 +272,7 @@ Begin {
     $CurrentParams.Add("ScriptVersion",$Version)
     Write-Verbose "PSBoundParameters: `n`t$($CurrentParams | Format-Table -AutoSize | out-string )"
 
-    # Preferences 
-    $ErrorActionPreference = "Stop"
-    $ProgressPreference = "Continue"
-
     #region Functions
-
-    # Function to write a console message or a verbose message
-    Function Script:Write-MessageInfo {
-        Param([Parameter(ValueFromPipeline)]$Message,$FGColor,[switch]$Title)
-        $BGColor = $host.UI.RawUI.BackgroundColor
-        If (-not $Quiet.IsPresent) {
-            If ($Title.IsPresent) {$Message = "`n$Message`n"}
-            $Host.UI.WriteLine($FGColor,$BGColor,"$Message")
-        }
-        Else {Write-Verbose "$Message"}
-    }
-
-    # Function to write an error as a string (no stacktrace)
-    Function Script:Write-MessageError {
-        [CmdletBinding()]
-        Param([Parameter(ValueFromPipeline)]$Message)
-        $Host.UI.WriteErrorLine("$Message")
-    }
 
     # Function to look through a function definition and grab the version 
     Function Script:GetVersion(){
@@ -216,8 +309,9 @@ Begin {
     # Console output
     $Activity = "Create new Github-flavored markdown README.md file for PowerShell module '$ModuleName'"
     If (-not $SkipVersionCheck.IsPresent) {$Activity += " (attempt to look up function versions)"}
-    $Msg = "BEGIN: $Activity"
-    "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Yellow -Title
+    $Msg = "[BEGIN: $Scriptname] $Activity" 
+    Write-Verbose $Msg
+
 }
 Process {
     
@@ -226,7 +320,7 @@ Process {
 
     # Check for module
     $Msg = "Get or verify module object" 
-    "[$ModuleName] $Msg" | Write-MessageInfo -FGColor "White"   
+    Write-Verbose "[$ModuleName] $Msg"
     Write-Progress -Activity $Activity -CurrentOperation $Msg
     Switch($Source) {
         Module {
@@ -235,25 +329,25 @@ Process {
                     If ($ModuleObj = Get-Module -Name $Modulename -ListAvailable @StdParams | Import-Module -Force @StdParams) {
                         $ParentDirectory = $ModuleObj.ModuleBase
                         $Msg = "Found and imported module $($ModuleObj.Name), version $($ModuleObj.Version)"
-                        "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+                        Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                         $Continue = $True   
                     }
                     Else {
                         $Msg = "Module '$ModuleName' not found in any PSModule directory on $Env:ComputerName"
-                        "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                        Write-Warning "[$($ModuleObj.Name)] $Msg" 
                     }
                 }
                 Else {
                     $ParentDirectory = $ModuleObj.ModuleBase
                     $Msg = "Found module '$($ModuleObj.Name)' version $($ModuleObj.Version) in $ParentDirectory"
-                    "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+                    Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                     $Continue = $True
                 }
             }
             Catch {
                 $Msg = "Failed to get or import module '$ModuleName'"
                 If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                Write-Warning "[$($ModuleObj.Name)] $Msg" 
             }
         }
         File {
@@ -262,18 +356,18 @@ Process {
                     $FullModulePath = $Module.Path
                     $ParentDirectory = (Get-Item $FullModulePath @StdParams).DirectoryName
                     $Msg = "Found module $($ModuleObj.Name) version $($ModuleObj.Version), in '$($ModuleObj.Path | Split-Path -Parent)'"
-                    "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+                    Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                     $Continue = $True
                 }
                 Else {
                     $Msg = "Failed to import module '$ModuleFile'"
-                    "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                    Write-Warning "[$($ModuleObj.Name)] $Msg" 
                 }
             }
             Catch {
                 $Msg = "Failed to import module '$ModuleFile'"
                 If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                Write-Warning "[$($ModuleObj.Name)] $Msg" 
             }
         }
     }
@@ -282,7 +376,7 @@ Process {
     If ($Continue.IsPresent) {
         
         $Msg = "Look for existing README.md file" 
-        "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor "White"   
+        Write-Verbose "[$($ModuleObj.Name)] $Msg"
         Write-Progress -Activity $Activity -CurrentOperation $Msg
     
         # Reset flag
@@ -293,11 +387,11 @@ Process {
             
             If (-not $Force.IsPresent) {
                 $Msg = "Existing '$($ExistingFile.Name)' file found; -Force not specified"
-                "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                Write-Warning "[$($ModuleObj.Name)] $Msg" 
             }
             Else {
                 $Msg = "Existing '$($ExistingFile.Name)' file found; -Force specified"
-                "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+                Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                 $Continue = $True
             }
 
@@ -312,12 +406,12 @@ Process {
                 CreateDate = $ExistingFile.CreationTime
                 LastWrite  = $ExistingFile.LastWriteTime
             }
-            ($Found | Out-String) | Write-MessageInfo -FGColor White
+            Write-Verbose ($Found | Out-String)
 
         } #end if file already exists
         Else {
             $Msg = "No existing README.md file found"
-            "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+            Write-Verbose "[$($ModuleObj.Name)] $Msg" 
             $Continue = $True
         }
     } #end if continue
@@ -329,7 +423,7 @@ Process {
         $Continue = $False
 
         $Msg = "Get general module information"
-        "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor White
+        Write-Verbose "[$($ModuleObj.Name)] $Msg" 
 
         If ($ModuleObj.Author) {
             If ($CurrentParams.Author) {
@@ -339,19 +433,19 @@ Process {
             Else {
                 $Author = $ModuleObj.author
                 $Msg = "Found author name '$Author' in module"
-                "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+                Write-Verbose "[$($ModuleObj.Name)] $Msg" 
             }
             $Continue = $True
         }
         Else {
             If ($CurrentParams.Author) {
                 $Msg = "No author name specified in module; -Author specified as '$Author'"
-                "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+                Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                 $Continue = $True
             }
             Else {
                 $Msg = "No author name specified in module; please re-run with -Author"
-                "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                Write-Warning "[$($ModuleObj.Name)] $Msg" 
             }
         }
 
@@ -359,7 +453,7 @@ Process {
         If ($ModuleObj.Description) {
             If (-not $ModuleDescription) {
                 $Msg = "Got module description"
-                "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+                Write-Verbose "[$($ModuleObj.Name)] $Msg" 
             }
             Else {
                 $Msg = "Parameter -ModuleDescription will override inclusion of native module description"
@@ -384,7 +478,7 @@ Process {
             }
         }
         $Msg = "Found Requires statements and/or PowerShell version requirements"
-        "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+        Write-Verbose "[$($ModuleObj.Name)] $Msg" 
 
         # Check module dependencies
         If ([array]$ReqModules = $ModuleObj.RequiredModules.Name) {
@@ -392,14 +486,14 @@ Process {
             Else {$RequiredModules = $ReqModules}
         }
         $Msg = "Found required modules list"
-        "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+        Write-Verbose "[$($ModuleObj.Name)] $Msg" 
     }
         
     # Create readme content
     If ($Continue.IsPresent) { 
         
         $Msg = "Create README.md content" 
-        "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor "White"   
+        Write-Verbose "[$($ModuleObj.Name)] $Msg"
         Write-Progress -Activity $Activity -CurrentOperation $Msg
     
         # Initialize variable to which we will add lines of strings
@@ -410,7 +504,7 @@ Process {
         $Commands = Get-Command -Module $ModuleObj @StdParams | Where-Object {$_.CommandType -ne "Alias"}
         $CommandsCount = $($Commands.Count)
         $Msg = "Found $Commandscount functions in module" # :`n * $(($Commands.Name | Sort) -join("`n * "))"
-        "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+        Write-Verbose "[$($ModuleObj.Name)] $Msg" 
 
         # Name/Title
         $Readme += "# Module $($ModuleObj.Name)"
@@ -458,12 +552,12 @@ Process {
             # Get commands
             Foreach ($Command in ($Commands| Sort)) {
 
-                "* $($Command.Name)" | Write-MessageInfo -FGColor White
+                Write-Verbose "[$($ModuleObj.Name)] * $($Command.Name)"
                 Try {
                     If (-not ($CommandHelp = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$LabelName)) {
                         If (-not ($CommandHelp = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$Alt)) {
                             $Msg = "No '$LabelName' or '$Alt' help found for $($Command.Name)"
-                            "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                            Write-Warning "[$($ModuleObj.Name)] $Msg" 
                         }
                     }
                     If ($CommandHelp) {
@@ -473,7 +567,7 @@ Process {
                 Catch {
                     $Msg = "Failed to get comment-based help for '$($Command.Name)'"
                     If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                    "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                    Write-Warning "[$($ModuleObj.Name)] $Msg" 
                 }
             } #end foreach function/command
         }
@@ -487,12 +581,12 @@ Process {
             # Get commands
             Foreach ($Command in ($Commands| Sort)) {
 
-                "* $($Command.Name)" | Write-MessageInfo -FGColor White
+                Write-Verbose "[$($ModuleObj.Name)] * $($Command.Name)" 
                 Try {
                     If (-not ($CommandHelp = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$LabelName)) {
                         If (-not ($CommandHelp = (Get-Help -Name $Command -ErrorAction SilentlyContinue -Verbose:$False).$Alt)) {
                             $Msg = "No '$LabelName' or '$Alt' help found for $($Command.Name)"
-                            "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                            Write-Warning "[$($ModuleObj.Name)] $Msg" 
                         }         
                     }
                     
@@ -504,20 +598,20 @@ Process {
                 Catch {
                     $Msg = "Failed to get comment-based help for '$($Command.Name)'"
                     If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                    "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                    Write-Warning "[$($ModuleObj.Name)] $Msg" 
                 }
             } #end foreach function/command
         }
 
         $Msg = "Successfully created README.md content for module"
-        "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+        Write-Verbose "[$($ModuleObj.Name)] $Msg" 
         $Continue = $True
 
         # Move existing file, if one exists
         If ($ExistingFile) {
             
             $Msg = "Rename and move existing README.md file"
-            "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor White
+            Write-Verbose "[$($ModuleObj.Name)] $Msg" 
             Write-Progress -Activity $Activity -CurrentOperation $Msg
     
             # Reset flag
@@ -532,18 +626,18 @@ Process {
                     $Newfile = $ExistingFile | Rename-Item -NewName $NewName -Force -Confirm:$False -PassThru @StdParams |
                         Move-Item -Destination $NewPath\$NewName -Force -Passthru -Confirm:$False @StdParams
                     $Msg = "Moved '$($ExistingFile.FullName)' to $($NewFile.FullName)"
-                    "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+                    Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                     $Continue = $True
                 }
                 Catch {
                     $Msg = "Failed to rename/move file '$($ExistingFile.FullName)' to '$NewPath\$NewName'"
                     If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                    "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                    Write-Warning "[$($ModuleObj.Name)] $Msg" 
                 }
             }
             Else {
                 $Msg = "Operation cancelled by user"
-                "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor White
+                Write-Verbose "[$($ModuleObj.Name)] $Msg" 
             }
         } #end if an existing file needs to be moved
 
@@ -551,23 +645,26 @@ Process {
         If ($Continue.IsPresent) {
 
             $Msg = "Save output to new README.md file"
-            "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor White
+            Write-Verbose "[$($ModuleObj.Name)] $Msg" 
             $ReadmeFilePath = Join-Path -Path $ParentDirectory -ChildPath "README.md" @StdParams
             
             $ConfirmMsg = "`n`n`t$Msg`n`n"
             If ($PScmdlet.ShouldProcess($ReadmeFilePath,$ConfirmMsg)) {
                 $Host.UI.WriteLine()
                 $Readme | Out-File -FilePath $ReadmeFilePath -Force @StdParams
-                $Msg = "Operation completed successfuly`n"
-                "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
-                Get-Content $ReadmeFilePath
+                If ($DisplayFileContent.IsPresent) {
+                    Get-Content $ReadmeFilePath
+                }
+                Else {
+                    Get-Item $ReadmeFilePath
+                }
             }
             Else {
                 $Msg = "Operation cancelled by user"
                 If ($Force.IsPresent -and ($NewFile)) {
                     
                     $Msg = "; restore original README.md file"
-                    "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor White
+                    Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                     $ConfirmMsg = "`n`n`t$Msg`n`n"
                     If ($PScmdlet.ShouldProcess($ExistingFile.Name,$ConfirmMsg)) {
                         
@@ -575,22 +672,22 @@ Process {
                             $RestoreFile = $NewFile | Rename-Item -NewName $ExistingFile.Name -Force -Confirm:$False -PassThru @StdParams |
                                 Move-Item -Destination $ExistingFile.FullName -Force -Passthru -Confirm:$False @StdParams
                             $Msg = "Moved '$($NewFile.FullName)' to $($RestoreFile.FullName)"
-                            "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Green
+                            Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                             $Continue = $True
                         }
                         Catch {
                             $Msg = "Failed to restore '$($NewFile.FullName)' to $($RestoreFile.FullName)"
                             If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                            "[$($ModuleObj.Name)] $Msg" | Write-MessageError
+                            Write-Warning "[$($ModuleObj.Name)] $Msg" 
                         }
                     }
                     Else {
                         $Msg = "Operation cancelled by user"
-                        "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor White
+                        Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                     }
                 }
                 Else {
-                    "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor White
+                    Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                 }
             } # end if cancel
         } # end if continue
@@ -599,7 +696,7 @@ Process {
 End {
     
     Write-Progress -Activity $Activity -Completed
-    $Msg = "END  : $Activity"
-    "[$($ModuleObj.Name)] $Msg" | Write-MessageInfo -FGColor Yellow -Title
+    $Msg = "[END: $Scriptname] $Activity" 
+    Write-Verbose $Msg
 }
-} #end New-PKGitReadmeFile
+} #end New-ToolboxReadmeFile

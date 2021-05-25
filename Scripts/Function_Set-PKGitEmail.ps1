@@ -15,7 +15,7 @@ Function Set-PKGitEmail {
     Name    : Function_Set-PKGitEmail.ps1 
     Created : 2018-08-13
     Author  : Paula Kingsley
-    Version : 02.00.0000
+    Version : 03.00.0000
     History :
 
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
@@ -23,6 +23,7 @@ Function Set-PKGitEmail {
         v01.00.0000 - 2018-08-13 - Created script
         v01.01.0000 - 2019-04-09 - Minor updates
         v02.00.0000 - 2019-10-10 - Added pipeline input, overhauled, added inner functions, other updates
+        v03.00.0000 - 2021-05-24 - Simplified, removed custom console messages and Quiet parameter; fixed missing Activity variable,
 
 .EXAMPLE
     PS C:\> Set-PKGitEmail -Global -EmailAddress joe.bloggs@domain.local -Verbose
@@ -201,24 +202,19 @@ Param(
     )]
     [ValidateNotNullOrEmpty()]
     [ValidateScript({$_ -as [mailaddress]})]
-    [string]$EmailAddress,
+    [string]$EmailAddress
 
-    [Parameter(
-        HelpMessage = "Suppress non-verbose console output"
-    )]
-    [Switch]$Quiet
 )
 
 Begin {
     
     # Current version (please keep up to date from comment block)
-    [version]$Version = "02.00.0000"
+    [version]$Version = "03.00.0000"
 
     # How did we get here
     $ScriptName = $MyInvocation.MyCommand.Name
     $Source = $PSCmdlet.ParameterSetName
     [switch]$PipelineInput = $MyInvocation.ExpectingInput
-
     $Scope = $Source
     
     # Display our parameters
@@ -236,11 +232,6 @@ Begin {
     $CurrentParams.Add("ScriptVersion",$Version)
     Write-Verbose "PSBoundParameters: `n`t$($CurrentParams | Format-Table -AutoSize | out-string )"
 
-    # Preferences
-    $ErrorActionPreference = "Stop"
-    $ProgressPreference = "Continue"
-    $WarningPreference = "Continue"
-
     #region Prerequisites
 
     If (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
@@ -252,25 +243,6 @@ Begin {
     #endregion Prerequisites
 
     #region Functions
-
-    # Function to write a console message or a verbose message
-    Function Write-MessageInfo {
-        Param([Parameter(ValueFromPipeline)]$Message,$FGColor,[switch]$Title)
-        $BGColor = $host.UI.RawUI.BackgroundColor
-        If (-not $Quiet.IsPresent) {
-            If ($Title.IsPresent) {$Message = "`n$Message`n"}
-            $Host.UI.WriteLine($FGColor,$BGColor,"$Message")
-        }
-        Else {Write-Verbose "$Message"}
-    }
-
-    # Function to write an error message (as a string with no stacktrace info)
-    Function Write-MessageError {
-        [CmdletBinding()]
-        Param([Parameter(ValueFromPipeline)]$Message)
-        If (-not $Quiet.IsPresent) {$Host.UI.WriteErrorLine("$Message")}
-        Else {Write-Verbose "$Message"}
-    }
 
     # Function to see if we're in a git repo
     Function Test-Repo{
@@ -314,7 +286,7 @@ Begin {
     #endregion Functions
 
     #region Splats
-
+        $Activity = "Set git email address"
         $Param_WP = @{}
         $Param_WP = @{
             Activity         = $Activity
@@ -343,7 +315,8 @@ Begin {
     #endregion Output object
 
     $Activity = "Set git $($Scope.ToLower()) config user email address"
-    "BEGIN: $Activity" | Write-MessageInfo -FGColor Yellow -Title
+    $Msg = "[BEGIN: $Scriptname] $Activity" 
+    Write-Verbose $Msg
 
     
 }
@@ -368,7 +341,7 @@ Process {
                 [switch]$Continue = $False
 
                 $Msg = "Get directory object"
-                "[$P] $Msg" | Write-MessageInfo -FGColor White
+                Write-Verbose "[$P] $Msg"
 
                 $Current ++
                 $Param_WP.PercentComplete = ($Current/$Total*100)
@@ -383,7 +356,7 @@ Process {
                 }
                 Catch {
                     $Msg = "Failed to find path"
-                    "[$P] $Msg" | Write-MessageError
+                    Write-Warning "[$P] $Msg"
                     $Output.IsChanged = $False
                     $Output.Messages = $Msg
                 }
@@ -394,7 +367,7 @@ Process {
                     $Continue = $False
                     
                     $Msg = "Verify git repo"
-                    "[$Target] $Msg" | Write-MessageInfo -FGColor White
+                    Write-Verbose "[$Target] $Msg"
 
                     $Param_WP.CurrentOperation = $Msg
                     Write-Progress @Param_WP
@@ -405,7 +378,7 @@ Process {
                     }
                     Else {
                         $Msg = "Failed to find git repo"
-                        "[$Target] $Msg" | Write-MessageError
+                        Write-Warning "[$Target] $Msg" 
                         $Output.IsChanged = $False
                         $Output.Messages = $Msg
                     }
@@ -417,7 +390,7 @@ Process {
                     $Continue = $False
 
                     $Msg = "Get current email address"
-                    "[$Target] $Msg" | Write-MessageInfo -FGColor White
+                    Write-Verbose "[$Target] $Msg" 
 
                     $Param_WP.CurrentOperation = $Msg
                     Write-Progress @Param_WP
@@ -425,10 +398,10 @@ Process {
                     If ($CurrentEmail = Get-Email) {
                         $Output.CurrentAddress = $CurrentEmail
                         $Msg = "Current email address is $CurrentEmail"
-                        "[$Target] $Msg" | Write-MessageInfo -FGColor White
+                        Write-Verbose "[$Target] $Msg"
                         If ($CurrentEmail -eq $EmailAddress) {    
                             $Msg = "No change needed"
-                            "[$Target] $Msg" | Write-MessageInfo -FGColor Cyan
+                            Write-Verbose "[$Target] $Msg"
                             $Output.Ischanged = $False
                             $Output.Messages = $Msg
                         }
@@ -439,7 +412,7 @@ Process {
                     }
                     Else {
                         $Msg = "No email address found"
-                        "[$Target] $Msg" | Write-MessageInfo -FGColor Cyan
+                        Write-Verbose "[$Target] $Msg"
                         $Output.CurrentAddress = "-"
                         $Continue = $True
                         $ConfirmMsg = "`n`n`tSet git $($Scope.ToLower()) email address to '$EmailAddress'`n`t$TargetStr`n`n"
@@ -449,7 +422,7 @@ Process {
                 If ($Continue.IsPresent) {
                     
                     $Msg = "Set email address"
-                    "[$Target] $Msg" | Write-MessageInfo -FGColor White
+                    Write-Verbose "[$Target] $Msg"
 
                     $Param_WP.CurrentOperation = $Msg
                     Write-Progress @Param_WP
@@ -459,13 +432,13 @@ Process {
                         Try {
                             If (Set-Email) {
                                 $Msg = "Successfully configured email address"
-                                "[$Target] $Msg" | Write-MessageInfo -FGColor Green
+                                Write-Verbose "[$Target] $Msg"
                                 $Output.IsChanged = $True
                                 $Output.Messages = $Msg
                             }
                             Else {
                                 $Msg = "Failed to set email address"
-                                "[$Target] $Msg" | Write-MessageError
+                                Write-Warning "[$Target] $Msg"
                                 $Output.IsChanged = $False
                                 $Output.Messages = $Msg
                             }
@@ -473,14 +446,14 @@ Process {
                         Catch {
                             $Msg = "Failed to set email address"
                             If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                            "[$Target] $Msg" | Write-MessageError
+                            Write-Warning "[$Target] $Msg"
                             $Output.IsChanged = $False
                             $Output.Messages = $Msg
                         } 
                     }
                     Else {
                         $Msg = "Operation cancelled by user"
-                        "[$Target] $Msg" | Write-MessageError
+                        Write-Verbose "[$Target] $Msg" 
                         $Output.IsChanged = $False
                         $Output.Messages = $Msg                        
                     }
@@ -511,7 +484,7 @@ Process {
                 $Continue = $False
 
                 $Msg = "Get current email address"
-                "[$Target] $Msg" | Write-MessageInfo -FGColor White
+                Write-Verbose "[$Target] $Msg"
 
                 $Param_WP.CurrentOperation = $Msg
                 Write-Progress @Param_WP
@@ -519,11 +492,11 @@ Process {
                 If ($CurrentEmail = Get-Email) {
                     $Output.CurrentAddress = $CurrentEmail
                     $Msg = "Current email address is $CurrentEmail"
-                    "[$Target] $Msg" | Write-MessageInfo -FGColor White
+                    Write-Verbose "[$Target] $Msg"
                     
                     If ($CurrentEmail -eq $EmailAddress) {
                         $Msg = "No change needed"
-                        "[$Target] $Msg" | Write-MessageInfo -FGColor Cyan
+                        Write-Verbose "[$Target] $Msg"
                         $Output.Ischanged = $False
                         $Output.Messages = $Msg
                     }
@@ -535,7 +508,7 @@ Process {
                 Else {
                     $Output.CurrentAddress = "-"
                     $Msg = "No email address found"
-                    "[$Target] $Msg" | Write-MessageInfo -FGColor White
+                    Write-Verbose "[$Target] $Msg"
                     $Continue = $True
                     $ConfirmMsg = "`n`n`tSet git $($Scope.ToLower()) email address to '$EmailAddress'`n`n"
                 }
@@ -544,7 +517,7 @@ Process {
             If ($Continue.IsPresent) {
                     
                 $Msg = "Set email address"
-                "[$Target] $Msg" | Write-MessageInfo -FGColor White
+                Write-Verbose "[$Target] $Msg"
 
                 $Param_WP.CurrentOperation = $Msg
                 Write-Progress @Param_WP
@@ -554,13 +527,13 @@ Process {
                     Try {
                         If (Set-Email) {
                             $Msg = "Successfully configured email address"
-                            "[$Target] $Msg" | Write-MessageInfo -FGColor Green
+                            Write-Verbose "[$Target] $Msg"
                             $Output.IsChanged = $True
                             $Output.Messages = $Msg
                         }
                         Else {
                             $Msg = "Failed to set email address"
-                            "[$Target] $Msg" | Write-MessageError
+                            Write-Warning "[$Target] $Msg"
                             $Output.IsChanged = $False
                             $Output.Messages = $Msg
                         }
@@ -568,14 +541,14 @@ Process {
                     Catch {
                         $Msg = "Failed to set email address"
                         If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                        "[$Target] $Msg" | Write-MessageError
+                        Write-Warning "[$Target] $Msg"
                         $Output.IsChanged = $False
                         $Output.Messages = $Msg
                     } 
                 }
                 Else {
                     $Msg = "Operation cancelled by user"
-                    "[$Target] $Msg" | Write-MessageError
+                    Write-Warning "[$Target] $Msg"
                     $Output.IsChanged = $False
                     $Output.Messages = $Msg                        
                 }
@@ -591,7 +564,7 @@ Process {
 End {
     
     Write-Progress -Activity $Activity -Completed
-    "END  : $Activity" | Write-MessageInfo -FGColor Yellow -Title
+    Write-Verbose "END  : $Activity"
 
 }
 } #end Set-backupsEmail
