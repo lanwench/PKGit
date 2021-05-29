@@ -1,5 +1,5 @@
 ﻿#Requires -Version 4
-function New-ToolboxReadmeFile {
+function New-PKGitReadmeFile {
 <#
 .SYNOPSIS
     Generates a github markdown README.md file from the comment-based help contained in the specified PowerShell module file
@@ -15,10 +15,10 @@ function New-ToolboxReadmeFile {
     Works with any PowerShell module (script or compiled) and any help (comment-based or XML-based) as long as it is accessible via Get-Help
 
 .NOTES 
-    Name    : Function_New-ToolboxReadmeFile.ps1
+    Name    : Function_New-PKGitReadmeFile.ps1
     Created : 2017-02-10
     Author  : Paula Kingsley
-    Version : 05.00.0000
+    Version : 05.00.0001
     History:  
         
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
@@ -33,6 +33,7 @@ function New-ToolboxReadmeFile {
         v04.01.0000 - 2021-04-26 - Changed function version check to opt-out, cosmetic changes
         v05.00.0000 - 2021-05-24 - Simplified, removed custom console output functions, removed Quiet, added switch to 
                                    output file content rather than defaulting to same
+        v05.00.0001 - 2021-05-28 - Fixed accidental function rename!
          
 .LINK
     https://github.com/MathieuBuisson/Powershell-Utility/tree/master/ReadmeFromHelp
@@ -255,7 +256,7 @@ Param(
 Begin {
 
     # Current version (please keep up to date from comment block)
-    [version]$Version = "05.00.0000"
+    [version]$Version = "05.00.0001"
 
     # Show our settings
     $Source = $PSCmdlet.ParameterSetName
@@ -503,7 +504,7 @@ Process {
         $Commands = @()
         $Commands = Get-Command -Module $ModuleObj @StdParams | Where-Object {$_.CommandType -ne "Alias"}
         $CommandsCount = $($Commands.Count)
-        $Msg = "Found $Commandscount functions in module" # :`n * $(($Commands.Name | Sort) -join("`n * "))"
+        $Msg = "Found $Commandscount functions in module" 
         Write-Verbose "[$($ModuleObj.Name)] $Msg" 
 
         # Name/Title
@@ -699,4 +700,4 @@ End {
     $Msg = "[END: $Scriptname] $Activity" 
     Write-Verbose $Msg
 }
-} #end New-ToolboxReadmeFile
+} #end New-PKGitReadmeFile
