@@ -8,11 +8,11 @@ Function Get-PKGitInstall {
     Looks for git.exe on the local computer, in the system path or by folder
     Returns a PSObject
 
-.Notes
+.NOTES
     Name    : Function_Get-PKGitInstall.ps1
     Created : 2016-05-29
     Author  : Paula Kingsley
-    Version : 04.00.0000
+    Version : 05.00.0000
     History :
         
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
@@ -29,9 +29,10 @@ Function Get-PKGitInstall {
         v3.0.0     - 2017-02-10 - Total overhaul and simplification
         v4.00.0000 - 2019-07-24 - Renamed from Test-PKGitInstall, removed boolean output,
                                   simplified, general updates and standardization
+        v5.00.0000 - 2022-09-19 - Overhauled, simplified, standardized
 
 .LINK
-    https://github.com/gmacluskiench/PKGit
+    https://github.com/lanwench/PKGit
 
 .PARAMETER SearchFolders
     Search for command in specific folders (default is to look for command in path)
@@ -39,80 +40,34 @@ Function Get-PKGitInstall {
 .PARAMETER FilePath
     One or more specific paths to search (default is user profile, program files, shared user profile directories)
 
-.PARAMETER Quiet
-    Suppress non-verbose console output
-
 .EXAMPLE
-    PS C:\>  Get-PKGitInstall -Verbose
-
-        VERBOSE: PSBoundParameters: 
+    PS C:\> Get-PKGitInstall -Verbose
+    VERBOSE: PSBoundParameters: 
 	
-        Key              Value                                                                     
-        ---              -----                                                                     
-        Verbose          True                                                                      
-        SearchFolders    False                                                                     
-        FilePath         
-        Quiet            False                                                                     
-        ComputerName     LAPTOP2                                                                     
-        ParameterSetName Path                                                                      
-        ScriptName       Get-PKGitInstall                                                          
-        ScriptVersion    4.0.0                                                                     
+    Key              Value           
+    ---              -----           
+    Verbose          True            
+    FilePath                         
+    SearchFolders    False           
+    ComputerName     LAPTOP14 
+    ParameterSetName Path            
+    ScriptName       Get-PKGitInstall
+    ScriptVersion    5.0.0           
 
-        BEGIN: Search for git.exe in system path
+    VERBOSE: [BEGIN: Get-PKGitInstall] Search for git.exe in system path
+    VERBOSE: [LAPTOP14] Search system paths for git.exe
+    VERBOSE: [LAPTOP14] 1 matches found
 
-        [LAPTOP2] Search system paths for git.exe
-        [LAPTOP2] 1 matches found
 
-        ComputerName : LAPTOP2
-        Name         : git.exe
-        Path         : C:\Program Files\Git\cmd\git.exe
-        Version      : 2.22.0.1
-        Language     : English (United States)
-        CommandType  : Application
-        FileDate     : 11/21/2018 8:03:41 PM
+    ComputerName : LAPTOP14
+    Name         : git.exe
+    Path         : C:\Program Files\Git\cmd\git.exe
+    Version      : 2.37.3.1
+    Language     : English (United States)
+    CommandType  : Application
+    FileDate     : 2019-08-14 10:52:23 AM
 
-        END  : Search for git.exe in system path
-
-.EXAMPLE
-    PS C:\> Get-PKGitInstall -SearchFolders -Verbose | Format-Table -AutoSize
-
-        VERBOSE: PSBoundParameters: 
-	
-        Key              Value                                                                     
-        ---              -----                                                                     
-        SearchFolders    True                                                                      
-        Verbose          True                                                                      
-        FilePath         {C:\Users\gmacluskie, C:\Program Files, C:\Program Files (x86), C:\ProgramData}
-        Quiet            False                                                                     
-        ComputerName     LAPTOP2                                                                     
-        ParameterSetName Search                                                                    
-        ScriptName       Get-PKGitInstall                                                          
-        ScriptVersion    4.0.0                                                                     
-
-        BEGIN: Search for git.exe in specific folders
-
-        [LAPTOP2] Search folders for git.exe
-        [LAPTOP2] 5 matches found
-
-        END  : Search for git.exe in specific folders
-
-        ComputerName   Name    Path                                                  Version  Language                CommandType FileDate             
-        ------------   ----    ----                                                  -------  --------                ----------- --------             
-        LAPTOP2        git.exe C:\Users\gmacluskie\Desktop\gitbackup\git.exe         2.20.0.4 English (United States) Application 7/25/2019 1:39:08 PM 
-        LAPTOP2        git.exe C:\Program Files\Git\bin\git.exe                      2.22.0.1 English (United States) Application 7/22/2019 10:37:56 AM
-        LAPTOP2        git.exe C:\Program Files\Git\cmd\git.exe                      2.22.0.1 English (United States) Application 11/21/2018 8:03:41 PM
-        LAPTOP2        git.exe C:\Program Files\Git\mingw64\bin\git.exe              2.22.0.1 English (United States) Application 7/22/2019 10:37:57 AM
-        LAPTOP2        git.exe C:\Program Files\Git\mingw64\libexec\git-core\git.exe 2.22.0.1 English (United States) Application 7/22/2019 10:38:02 AM
-
-.EXAMPLE
-    PS C:\> Get-PKGitInstall -SearchFolders -FilePath C:\Temp
-
-        BEGIN: Search for git.exe in specific folders
-
-        [WKSTA] Search folders for git.exe
-        [WKSTA] Failed to find git.exe in specified folder path(s)
-
-        END  : Search for git.exe in specific folders
+    VERBOSE: [END: Get-PKGitInstall] Search for git.exe in system path
 
 
 #>
@@ -130,23 +85,18 @@ Param(
         HelpMessage = "One or more specific paths to search (default is user profile, program files, shared user profile directories)"
     )]
     [ValidateNotNullOrEmpty()]
-    [string[]]$FilePath = @("$Env:UserProfile","$Env:ProgramFiles","${env:ProgramFiles(x86)}","$Env:AllUsersProfile"),
-        
-    [Parameter(
-        HelpMessage = "Suppress non-verbose console output"
-    )]
-    [switch]$Quiet
+    [string[]]$FilePath = @("$Env:UserProfile","$Env:ProgramFiles","${env:ProgramFiles(x86)}","$Env:AllUsersProfile")
+ 
 )
 Begin{
 
     # Version from comment block
-    [version]$Version = "04.00.0000"
+    [version]$Version = "05.00.0000"
 
-    # Preference
-    $ErrorActionPreference = "Stop"
 
     # Show our settings
     $Source = $PSCmdlet.ParameterSetName
+    $ScriptName = $MyInvocation.MyCommand.Name
     $CurrentParams = $PSBoundParameters
     If ($Source -eq "Path") {$CurrentParams.FilePath = $Null}
     $MyInvocation.MyCommand.Parameters.keys | Where {$CurrentParams.keys -notContains $_} | 
@@ -155,31 +105,12 @@ Begin{
         }
     $CurrentParams.Add("ComputerName",$Env:ComputerName)
     $CurrentParams.Add("ParameterSetName",$Source)
-    $CurrentParams.Add("ScriptName",$MyInvocation.MyCommand.Name)
+    $CurrentParams.Add("ScriptName",$Scriptname)
     $CurrentParams.Add("ScriptVersion",$Version)
     Write-Verbose "PSBoundParameters: `n`t$($CurrentParams | Format-Table -AutoSize | out-string )"
 
     #region Functions
 
-    # Function to write a console message or a verbose message
-    Function Write-MessageInfo {
-        Param([Parameter(ValueFromPipeline)]$Message,$FGColor,[switch]$Title)
-        $BGColor = $host.UI.RawUI.BackgroundColor
-        If (-not $Quiet.IsPresent) {
-            If ($Title.IsPresent) {$Message = "`n$Message`n"}
-            $Host.UI.WriteLine($FGColor,$BGColor,"$Message")
-        }
-        Else {Write-Verbose "$Message"}
-    }
-
-    # Function to write an error or a verbose message
-    Function Write-MessageError {
-        [CmdletBinding()]
-        Param([Parameter(ValueFromPipeline)]$Message)
-        $BGColor = $host.UI.RawUI.BackgroundColor
-        If (-not $Quiet.IsPresent) {$Host.UI.WriteErrorLine("$Message")}
-        Else {Write-Verbose "$Message"}
-    }
 
     # Get the command or the file object
     Function GetDetails {
@@ -227,7 +158,10 @@ Begin{
     Else {
         $Activity += " in system path"
     }
-    "BEGIN: $Activity" | Write-MessageInfo -FGColor Yellow -Title
+    
+    # Console output
+    $Msg = "[BEGIN: $Scriptname] $Activity" 
+    Write-Verbose $Msg
 
 }
 Process {
@@ -236,7 +170,7 @@ Process {
     If ($SearchFolders.IsPresent) {
         
         $Msg = "Search folders for git.exe"
-        "[$Env:ComputerName] $Msg"  | Write-MessageInfo -FGColor White
+        Write-Verbose "[$Env:ComputerName] $Msg"
         Write-Progress -Activity $Activity -CurrentOperation $Msg
 
         Try {
@@ -246,13 +180,13 @@ Process {
             Try {
                 If (-not ([array]$ItemsFound = $TopLevelFolders | Get-Childitem -Filter git.exe -Recurse -Force -File -ErrorAction SilentlyContinue)) {
                     $Msg = "Failed to find git.exe in specified folder path(s)"
-                    "[$Env:ComputerName] $Msg" | Write-MessageError
+                    Write-Warning "[$Env:ComputerName] $Msg"
                 }
             }
             Catch {
                 $Msg = "Failed to find git.exe in specified folder path(s)"
                 If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                "[$Env:ComputerName] $Msg" | Write-MessageError
+                Write-Warning "[$Env:ComputerName] $Msg"
             }
         }
         Catch {
@@ -266,20 +200,19 @@ Process {
     Else {
 
         $Msg = "Search system paths for git.exe"
-        "[$Env:ComputerName] $Msg"  | Write-MessageInfo -FGColor White
+        Write-Verbose "[$Env:ComputerName] $Msg"
         Write-Progress -Activity $Activity -CurrentOperation $Msg
 
         Try {
             If (-not ([array]$ItemsFound = Get-Command -Name git.exe -EA SilentlyContinue -Verbose:$False)) {
                 $Msg = "Failed to find git.exe in system path"
-                "[$Env:ComputerName] $Msg" | Write-MessageError
+                Write-Warning "[$Env:ComputerName] $Msg"
             }
-            #Else {$ItemsFound = $ItemsFound | Select Name,@{N="Path";E={$_.Source}},Version}
         }
         Catch {
             $Msg = "Failed to find git.exe in specified folder path(s)"
             If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-            "[$Env:ComputerName] $Msg" | Write-MessageError
+            Write-Warning "[$Env:ComputerName] $Msg"
         }
     }
     
@@ -288,8 +221,8 @@ Process {
         $Total = $ItemsFound.Count
         $Current = 0
         $Msg = "$Total matches found"
-        "[$Env:ComputerName] $Msg" | Write-MessageInfo -FGColor Green
-
+        Write-Verbose "[$Env:ComputerName] $Msg"
+        
         Foreach ($Item in $ItemsFound) {
                         
             $Current++ 
@@ -303,9 +236,11 @@ Process {
 }
 End {
     
-    Write-Progress -Activity * -Completed
-    "END  : $Activity" | Write-MessageInfo -FGColor Yellow -Title
+    $Msg = "[END: $Scriptname] $Activity" 
+    Write-Verbose $Msg
 
+    Write-Progress -Activity * -Completed
+    
 }
 } #end Get-PKGitInstall
 

@@ -2,395 +2,293 @@
 Function Get-PKGitWorkingFiles {
 <#
 .SYNOPSIS
-    Returns the working files for a git repo, optionally allowing for selection of files from a menu, and/or limiting files to those in current directory only
+    Returns the git status and working files for one or more git repos
 
 .DESCRIPTION
-    Returns the working files for a git repo, optionally allowing for selection of files from a menu, and/or limiting files to those in current directory only
-    Tests for posh-git module and checks that directory contains a git repo
+    Returns the git status and working files for one or more git repos
+    Requires Get-GitStatus from posh-git module
+    Requires git, of course
+    Accepts pipeline input
     Outputs a PSObject
 
 .NOTES
     Name    : Function_Get-PKGitWorkingFiles.ps1 
     Created : 2018-03-21
     Author  : Paula Kingsley
-    Version : 01.01.0000
+    Version : 02.00.0000
     History :
         
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK **
         
         v01.00.0000 - 2018-03-21 - Created script
-        v01.01.0000 - 2018-03-21 - Added regex to include subfolder paths when using -CurrentDirectoryOnly, added -ReturnString
+        v01.01.0000 - 2018-03-21 - Added regex to include subfolder paths when using -CurrentDirectoryOnly, added -ExpandFiles
+        v02.00.0000 - 2022-09-19 - Overhauled and standardized
 
-.PARAMETER CurrentDirectoryOnly
-    Display working files for current directory only
+.PARAMETER Path
+    Absolute path to git repo (default is current location)
 
-.PARAMETER Menu
-    Prompt for selection of working files
+.PARAMETER Recurse
+    Recurse subfolders in path
 
-.PARAMETER ReturnString
-    Return files as string, separated by spaces (e.g., for use in `git add file1 file2 file3')
-
-.PARAMETER SuppressconsoleOutput
-    Suppress all non-verbose/non-error console output
+.PARAMETER ExpandFiles
+    Break out individual files into strings separated by line breaks; easier to read than property collections
 
 .EXAMPLE
-    PS C:\Repos> Get-PKGitWorkingFiles -Verbose
+    PS C:\Repos\MyRepo> Get-PKGitWorkingFiles -Verbose
 
         VERBOSE: PSBoundParameters: 
 	
-        Key                  Value                     
-        ---                  -----                     
-        Verbose              True                      
-        CurrentDirectoryOnly False                     
-        Menu                 False                     
-        ScriptName           Get-PKGitWorkingFiles     
-        ScriptVersion        1.0.0                     
+        Key           Value                                 
+        ---           -----                                 
+        Verbose       True                                  
+        Path          {C:\Repos\MyRepo}
+        Recurse       False                                 
+        ExpandFiles   False                                 
+        PipelineInput False                                 
+        ScriptName    Get-PKGitWorkingFiles                 
+        ScriptVersion 2.0.0                                 
 
-        VERBOSE: Prerequisites
-        VERBOSE: Verified git is installed and in system path
-        VERBOSE: Verified 'posh-git' module is available
+        VERBOSE: [BEGIN: Get-PKGitWorkingFiles] Get git working files
+        VERBOSE: [C:\Repos\MyRepo] Searching for git repos
+        VERBOSE: [C:\Repos\MyRepo] 1 git repo(s) found
+        VERBOSE: [C:\Repos\MyRepo] 7 working file(s) found
 
-        Action: Get git working files
+        Path         : C:\Repos\MyRepo
+        RepoName     : myrepo
+        Upstream     : origin/master
+        Branch       : master
+        AheadBy      : 0
+        BehindBy     : 0
+        HasUntracked : True
+        HasWorking   : True
+        NumFiles     : 7
+        Files        : {Scripts/do-something.ps1, Files/config.txt, Scripts/do-somethingelse...}
 
-        VERBOSE: Verify directory contains git repo(s)
-        VERBOSE: Get all git working files
-        VERBOSE: 21 file(s) found
-
-        RepoMan/Drafts/
-        RepoMan/Scripts/Draft_Function_Test-MeltdownSpectre.ps1
-        RepoMan/Scripts/Function_ConvertTo-HTMLTable.ps1
-        RepoMan/Scripts/Function_Get-WindowsMeltdownPatch.ps1
-        RepoMan/Scripts/Sandbox/Untitled12.ps1
-        RepoMan/Scripts/Sandbox/Draft_Function_Get-WindowsMeltdownRegKey.ps1
-        Chef/Scripts/Function_New-ChefClientConfig.ps1
-        VMwareStuff/Scripts/Function_Get-PKVMDatacenter.ps1
-        VMwareStuff/Scripts/Function_Get-PKVMTemplate.ps1
-        VMwareStuff/Scripts/Function_Get-PKVirtualPortGroup.ps1
-        VMwareStuff/Scripts/Function_Get-PKVMwareStuffReport.ps1
-        VMwareStuff/Scripts/Function_New-PKVMwareStuff.ps1
-        RepoMan/Scripts/Function_Get-PKWindowsAdmins.ps1
-        RepoMan/Scripts/Draft_Function-New-PKWSUSServer.ps1
-        RepoMan/Scripts/Draft_Function_Clear-PKWindowsRecycleBin.ps1
-        RepoMan/Scripts/ConvertTo-HTMLTable.ps1
-        RepoMan/Scripts/Draft_Function_Get-PKDirectorySize.ps1
-        RepoMan/Scripts/Draft_Function_Get-PKWindowsDirSize.ps1
-        RepoMan/Scripts/Draft_Function_Get-PKWindowsUpdateEvents.ps1
-        RepoMan/Scripts/Draft_Function_Invoke-PKWinUp.ps1
-        RepoMan/Scripts/Draft_Function_Remove-PKWindowsProfile.ps1
+        VERBOSE: [END: Get-PKGitWorkingFiles] Get git working files
 
 .EXAMPLE
-    PS C:\TempRepo> Get-PKGitWorkingFiles -Verbose
+    PS C:\> "d:\git","d:\modules" | Get-PKGitWorkingFile -Recurse -ExpandFiles
 
-        VERBOSE: PSBoundParameters: 
-	
-        Key                  Value                     
-        ---                  -----                     
-        Verbose              True                      
-        CurrentDirectoryOnly False                     
-        Menu                 False                     
-        Debug                Get datacenter information
-        ScriptName           Get-PKGitWorkingFiles     
-        ScriptVersion        1.0.0                     
+        Path         : D:\git\blah
+        RepoName     : blah
+        Upstream     : origin/main
+        Branch       : main
+        AheadBy      : 3
+        BehindBy     : 3
+        HasUntracked : False
+        HasWorking   : False
+        NumFiles     : 
+        Files        : 
 
-        VERBOSE: Prerequisites
-        VERBOSE: Verified git is installed and in system path
-        VERBOSE: Verified 'posh-git' module is available
+        Path         : D:\git\gists\1832ef8e9c77d2beccfd921g882faa23
+        RepoName     : 1832ef8e9c77d2beccfd921g882faa23
+        Upstream     : origin/master
+        Branch       : master
+        AheadBy      : 0
+        BehindBy     : 0
+        HasUntracked : False
+        HasWorking   : True
+        NumFiles     : 1
+        Files        : pw-expiry.ps1
 
-        Action: Get git working files
-
-        VERBOSE: Verify directory contains git repo(s)
-        VERBOSE: Get all git working files
-
-        No git working files found
-
-.EXAMPLE
-    PS C:\ProdRepo\main> Get-PKGitWorkingFiles -CurrentDirectoryOnly -Verbose
-
-        VERBOSE: PSBoundParameters: 
-	
-        Key                   Value                     
-        ---                   -----                     
-        Verbose               True          
-        CurrentDirectoryOnly  True                      
-        Menu                  False                     
-        SuppressConsoleOutput False                     
-        ScriptName            Get-PKGitWorkingFiles     
-        ScriptVersion         1.0.0                     
-        
-        VERBOSE: Prerequisites
-        VERBOSE: Verified git is installed and in system path
-        VERBOSE: Verified 'posh-git' module is available
-
-        Action: Get git working files in current directory
-
-        VERBOSE: Verify directory contains git repo(s)
-        VERBOSE: Get git working files in current directory
-        VERBOSE: 7 file(s) found
-
-        ../main/Scripts/Function_Get-PKTempFile.ps1
-        ../main/Scripts/Draft_Function_Get-PKEvents.ps1
-        ../main/Scripts/Draft_Function_Get-PKDriveSpace.ps1
-        ../main/Scripts/Draft_Function_Get-PKWindowsUpdateEvents.ps1
-        ../main/Scripts/Draft_Function_Invoke-PKJob.ps1
-        ../main/Scripts/Draft_Function_Stop-PKSpoolerSvc.ps1
-
-.EXAMPLE
-    PS C:\ProdRepo\main> Get-PKGitWorkingFiles -CurrentDirectoryOnly -Menu -Verbose
-
-        VERBOSE: PSBoundParameters: 
-	
-        Key                   Value                     
-        ---                   -----                     
-        Verbose               True          
-        CurrentDirectoryOnly  True                      
-        Menu                  True                      
-        SuppressConsoleOutput False                     
-        ScriptName            Get-PKGitWorkingFiles     
-        ScriptVersion         1.0.0                     
-
-        VERBOSE: Prerequisites
-        VERBOSE: Verified git is installed and in system path
-        VERBOSE: Verified 'posh-git' module is available
-
-        Action: Get git working files in current directory, bringing up a selection menu
-
-        VERBOSE: Verify directory contains git repo(s)
-        VERBOSE: Get git working files in current directory
-        VERBOSE: 1 file(s) selectd
-        ../main/Scripts/Draft_Function_Stop-PKSpoolerSvc.ps1
-
-.EXAMPLE
-    PS C:\RepoMan> Get-PKGitWorkingFiles -CurrentDirectoryOnly -ReturnString -SuppressConsoleOutput
-
-        Scripts/Function_Get-PKInfo.ps1 Scripts/Function_Add-PKUpdates.ps1 Scripts/New-PKVMTemplate.ps1
-
-.EXAMPLE
-    PS C:\temp> Get-PKGitWorkingFiles -Menu -SuppressConsoleOutput
-
-        Directory 'C:\temp' is not a git repo
+        Path         : D:\modules\Helpers
+        RepoName     : Helpers
+        Upstream     : origin/main
+        Branch       : main
+        AheadBy      : 0
+        BehindBy     : 0
+        HasUntracked : False
+        HasWorking   : True
+        NumFiles     : 3
+        Files        : Helpers.psd1
+                       README.md
+                       Scripts/AllFunctions.ps1
 
 #>
 [CmdletBinding()]
 Param(
     [Parameter(
-        Mandatory = $False,
-        HelpMessage = "Display working files for current directory only"
+        Position = 0,
+        ValueFromPipeline,
+        ValueFromPipelineByPropertyName,
+        HelpMessage = "Absolute path to git repo (default is current location)"
     )]
-    [switch]$CurrentDirectoryOnly,
+    [Alias("FullName","RepoPath")]
+    [object[]]$Path = (Get-Location).Path,
     
     [Parameter(
-        Mandatory = $False,
-        HelpMessage = "Prompt for selection of working files"
+        HelpMessage = "Recurse subfolders in path"
     )]
-    [switch]$Menu,
+    [switch]$Recurse,
 
     [Parameter(
-        Mandatory = $False,
-        HelpMessage = "Return files as string, separated by spaces (e.g., for use in `git add file1 file2 file3')"
+        HelpMessage = "Break out individual files into strings separated by line breaks; easier to read than property collections"
     )]
-    [switch]$ReturnString,
+    [switch]$ExpandFiles
 
-    [Parameter(
-        Mandatory = $False,
-        HelpMessage = "Suppress all non-verbose/non-error output"
-    )]
-    [switch]$SuppressConsoleOutput
 )
 Begin {
 
 
-    # Version from comment block
-    [version]$Version = "01.01.000"
+    # Current version (please keep up to date from comment block)
+    [version]$Version = "02.00.000"
 
     # Show our settings
     $CurrentParams = $PSBoundParameters
+    $ScriptName = $MyInvocation.MyCommand.Name
+    [switch]$PipelineInput = $MyInvocation.ExpectingInput
     $MyInvocation.MyCommand.Parameters.keys | Where {$CurrentParams.keys -notContains $_} | 
         Where {Test-Path variable:$_}| Foreach {
             $CurrentParams.Add($_, (Get-Variable $_).value)
         }
-    $CurrentParams.Add("ScriptName",$MyInvocation.MyCommand.Name)
+    $CurrentParams.Add("PipelineInput",$PipelineInput)
+    $CurrentParams.Add("ScriptName",$ScriptName)
     $CurrentParams.Add("ScriptVersion",$Version)
     Write-Verbose "PSBoundParameters: `n`t$($CurrentParams | Format-Table -AutoSize | out-string )"
 
-    # Preference
-    $ErrorActionPreference = "Stop"
-    $ProgressPreference = "Continue"
-    
-    # General purpose splat
-    $StdParams = @{
-        ErrorAction = "stop"
-        Verbose = $false
+    If (-not ($GitCmd = Get-Command git.exe -ErrorAction SilentlyContinue)) {
+        $Msg = "Can't find git.exe on '$Env:ComputerName'; please install from https://git-scm.com/download/win"
+        Write-Error $Msg
+        Break
     }
+    If (-not ((($PoshCmd = Get-Command Get-GitStatus -ErrorAction SilentlyContinue) -and ($PoshCmd.Source -eq "posh-git")))) {
+        $Msg = "This script requires Get-GitStatus from the Posh-Git module; try 'Install-Module posh-git -Repository psgallery'"
+        Write-Error $Msg
+        Break
+    }
+
+    $StartLocation = Get-Location
 
     #region Functions
-    # Is the current directory a git repository/working copy?
-    function isCurrentDirectoryGitRepository {
-        # https://gist.github.com/markembling/180853#file-gitutils-ps1
-        if ((Test-Path ".git") -eq $TRUE) {
-            return $TRUE
-        }
-        # Test within parent dirs
-        $checkIn = (Get-Item .).parent
-        while ($checkIn -ne $NULL) {
-            $pathToTest = $checkIn.fullname + '/.git'
-            if ((Test-Path $pathToTest) -eq $TRUE) {
-                return $TRUE
-            } else {
-                $checkIn = $checkIn.parent
+
+    # Function to verify/get repo path fullname
+    Function GetRepoPath([Parameter(Position=0)]$P){
+        Try {
+            If ($P -is [string]) {
+                $FolderObj = Get-Item -Path $P -Verbose:$False   
+            }
+            ElseIf ($P -is [System.Management.Automation.PathInfo]) {
+                $FolderObj = Get-Item -Path $P.FullName -Verbose:$False                   
+            }
+            Elseif ($P -is [System.IO.FileSystemInfo]) {
+                $FolderObj = $P
+            }
+            Else {
+                $Msg = "Unknown object type; please use a valid path string or directory object"
+                Throw $Msg
+            }
+
+            If ($FolderObj) {
+                If ([object[]]$GitRepos = $FolderObj | Get-Childitem -Recurse:$Recurse -Filter .git -Directory -Attributes H -ErrorAction Stop) {
+                    $GitRepos.FullName | Split-Path -Parent
+                }
             }
         }
-        return $FALSE
-    }
-
-    # Test directory, courtesy Mark Embling (not using yet)
-    function TestRepoPath {
-        [CmdletBinding()]
-        Param()
-        If (($Null = Test-Path ".git" -ErrorAction SilentlyContinue -Verbose:$False) -eq $true) {
-            $Msg = "Directory '$PWD' is a git repo"
-            Write-Verbose $Msg
-            Return $True
-        }
-        Else {
-            $Msg = "Directory' $PWD' is not a git repo"
-            Write-Verbose $Msg
-            Return $False
-        }
-    } #end function
+        Catch {Throw $_.Exception.Message}
+    } #end getrepopath
 
     #endregion Functions
 
-    #region Prerequisites
+    $Results = @()
 
-    $Msg = "Prerequisites"
-    Write-Progress -Activity $Msg
-    Write-Verbose $Msg
-
-    If (-not ($Null = Get-Command git -ErrorAction SilentlyContinue -Verbose:$False)) {
-        $Msg = "Failed to find git; make sure git for Windows is installed and in the current path"
-        $Host.UI.WriteErrorLine("ERROR: $Msg")
-        Break
-    }
-    Else {
-        $Msg = "Verified git is installed and in system path"
-        Write-Verbose $Msg
-    }
-    If (-not ($Mod = Get-Module -Name posh-git -ListAvailable -ErrorAction SilentlyContinue -Verbose:$False)) {
-        $Msg = "Failed to find 'posh-git' module; if you have Chocolatey, you can install it using 'choco install poshgit'"
-        $Host.UI.WriteErrorLine("ERROR: $Msg")
-        Break
-    }
-    Else {
-        $Msg = "Verified 'posh-git' module is available"
-        Write-Verbose $Msg
-        If (-not (Get-Module $Mod -ErrorAction SilentlyContinue -Verbose:$False)) {
-            $Null = Import-Module @StdParams
-        }
-    }
-
-    #endregion Prerequisites
-
-
-    $Activity = "Get git working files"   
+    $Activity = "Get git working files"
     If ($CurrentDirectoryOnly.IsPresent) {$Activity += " in current directory"}
     If ($Menu.IsPresent) {$Activity += ", bringing up a selection menu"}
-    $Msg = "Action: $Activity"
-    $BGColor    = $Host.UI.RawUI.BackgroundColor
-    $FGColor = "Yellow"
-    If (-not $SuppressConsoleOutput.IsPresent) {$Host.UI.WriteLine($FGColor,$BGColor,$Msg)}
-    Else {Write-Verbose $Msg}
-
-    
-
+    Write-Verbose "[BEGIN: $ScriptName] $Activity"
+ 
 }
 Process {
     
-    # Verifity this is a git directory
-    $Msg = "Verify directory contains git repo(s)"
-    $Activity = $Msg
-    Write-Verbose $Msg    
-    Write-Progress -Activity $Activity
-    
-    [switch]$IsRepo = isCurrentDirectoryGitRepository
+    $TotalPaths = $Path.Count
+    $CurrentPath = 0
 
-    If (-not $IsRepo.IsPresent) {
-        $Msg = "Directory '$PWD' is not a git repo"
-        $Host.UI.WriteErrorLine($Msg)
-        Break
-    }
-    
-    Else {
-    
+    Foreach ($Item in $Path) {
+        
         Try {
+            $CurrentPath ++
         
-            [array]$WorkingFiles = [array]$SelectedFiles = @()
+            If ($Item -is [string] -or $Item -is [System.IO.FileSystemInfo]) {$Label = $Item}
+            ElseIf ($Item -is [System.Management.Automation.PathInfo]) {$Label = $Item.FullName}
         
-            If ($currentDirectoryOnly.IsPresent) {
-                $Msg = "Get git working files in current directory"
-                $Activity = $Msg
-                Write-Verbose $Msg    
-                Write-Progress -Activity $Activity
-    
-                $GitStatus = Get-GitStatus @StdParams
-                $CurrDir = "$((Get-Item $PWD.Path).Name)/"
-                $Pattern = "^\.+\/\w" # (anything beginning with ..\ isn't in this directory
-                [array]$WorkingFiles = $GitStatus.Working | Where-Object {($_ -notmatch $Pattern) -or ($_ -match [Regex]::Escape($CurrDir))}
-            }
-            Else {
-                $Msg = "Get all git working files"
-                Write-Verbose $Msg    
-                Write-Progress -Activity $Activity
-    
-                $GitStatus = Get-GitStatus @StdParams      
-                [array]$WorkingFiles = $GitStatus.Working
-            }
+            $Msg = "Searching for git repos"
+            If ($Recurse.IsPresent) {$Msg += " (search subfolders recursively)"}
+            Write-Verbose "[$Label] $Msg"
+            Write-Progress  -Id 1 -Activity $Activity -CurrentOperation $Msg -Status $Item -PercentComplete ($CurrentPath/$TotalPaths*100)
         
-            If ($WorkingFiles.Count -gt 0) {
+            If ([object[]]$GitRepos = GetRepoPath -P $Item) {
             
-                If ($Menu.IsPresent) {
-                    $Msg = "$($WorkingFiles.Count) file(s) found; please select one or more files"
-                    If ([array]$SelectedFiles = $WorkingFiles | Out-GridView -OutputMode Multiple -Title $Msg -ErrorAction SilentlyContinue -Verbose:$False) {
-                        $Msg = "$($SelectedFiles.Count) file(s) selectd"
-                        Write-Verbose $Msg
+                $TotalRepos = $GitRepos.Count
+                $CurrentRepo = 0
+                $Msg = "$TotalRepos git repo(s) found"
+                Write-Verbose "[$Label] $Msg"
+
+                Foreach ($GitFolder in ($GitRepos | Sort-Object | Select-Object -Unique)) {
+
+                    $CurrentRepo ++
+                    Push-Location -Path $GitFolder
+                    $Label = $GitFolder
+
+                    $GitStatus = Get-GitStatus -ErrorAction Stop -Verbose:$False
+                    
+                    $Output = [PSCustomObject]@{
+                        Path         = $GitFolder
+                        RepoName     = $GitStatus.RepoName
+                        Upstream     = $GitStatus.Upstream
+                        Branch       = $GitStatus.Branch
+                        AheadBy      = $GitStatus.AheadBy
+                        BehindBy     = $GitStatus.AheadBy
+                        HasUntracked = $GitStatus.HasUntracked
+                        HasWorking   = $GitStatus.HasWorking
+                        NumFiles     = $Null
+                        Files        = $Null
+                    }
+
+                    
+                    $Pattern = "^\.+\/\w" # (anything beginning with ..\ isn't in this directory
+                    If ([array]$WorkingFiles = $GitStatus.Working | Where-Object {($_ -notmatch $Pattern) -or ($_ -match [Regex]::Escape($GitFolder))}) {
+                        
+                        $Msg = "$($WorkingFiles.Count) working file(s) found"
+                        Write-Verbose "[$Label] $Msg"
+                        $Output.NumFiles = $($WorkingFiles.Count)
+
+                        If ($ExpandFiles.IsPresent) {
+                            $Output.Files = $WorkingFiles -join("`n")
+                        }
+                        Else {
+                            $Output.Files = $WorkingFiles
+                        }
                     }
                     Else {
-                        $Msg = "No files selected"
-                        $Host.UI.WriteErrorLine($Msg)
-                        Break
-                    
+                        $Msg = "No working files found"
+                        Write-Verbose "[$Label] $Msg"
                     }
-                }
-                Else {
-                    [array]$SelectedFiles = $WorkingFiles
-                    $Msg = "$($SelectedFiles.Count) file(s) found"
-                    Write-Verbose $Msg    
-                }
-            }
+
+                    $Results += $Output
+                    
+                    Pop-Location
+
+                } # end foreach repo
+
+            } #end if repo
             Else {
-                $Msg = "No git working files found"
-                If ($CurrentDirectoryOnly.IsPresent) {$Msg += " directly in root directory (consider changing to subfolder)"}
-                $Host.UI.WriteErrorLine($Msg) 
+                $Msg = "No Git repo found"
+                If (-not $Recurse.IsPresent) {$Msg += " (try -Recurse)"}
+                Write-Warning "[$Label] $Msg"
             }
-        }
+
+        } #end try
         Catch {
-            $Msg = "Failed to get git working files"
-            If ($ErrorDetails = $_.Exception.Message) {$msg += "`n$ErrorDetails"}
-            $Host.UI.WriteErrorLine("ERROR: $Msg")
+            $Msg = "Operation failed"
+            If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)" }
+            Write-Warning "[$Label] $Msg"
         }
 
-        If ($SelectedFiles) {
-            If ($ReturnString.IsPresent) {
-                Write-Output ($SelectedFiles -join(" "))
-            }
-            Else {
-                Write-Output $SelectedFiles
-            }
-        }  
-    
-    } #end if git repo directory
+        Write-Output $Results
 
+    }# end foreach path
 }
 End {
     Write-Progress -Activity $Activity -Completed
+     Write-Verbose "[END: $ScriptName] $Activity"
 }
 }

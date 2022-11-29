@@ -1,5 +1,5 @@
 ﻿#Requires -Version 4
-function New-PKGitReadmeFile {
+Function New-PKGitReadmeFile {
 <#
 .SYNOPSIS
     Generates a github markdown README.md file from the comment-based help contained in the specified PowerShell module file
@@ -18,7 +18,7 @@ function New-PKGitReadmeFile {
     Name    : Function_New-PKGitReadmeFile.ps1
     Created : 2017-02-10
     Author  : Paula Kingsley
-    Version : 05.00.0001
+    Version : 05.03.0000
     History:  
         
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
@@ -33,7 +33,9 @@ function New-PKGitReadmeFile {
         v04.01.0000 - 2021-04-26 - Changed function version check to opt-out, cosmetic changes
         v05.00.0000 - 2021-05-24 - Simplified, removed custom console output functions, removed Quiet, added switch to 
                                    output file content rather than defaulting to same
-        v05.00.0001 - 2021-05-28 - Fixed accidental function rename!
+        v05.01.0000 - 2021-06-21 - Fixed erroneous rename
+        v05.02.0000 - 2022-04-28 - Fixed function version check (was generating errors if not found)
+        v05.03.0000 - 2022-09-19 - Minor updates to author/description, cleanup
          
 .LINK
     https://github.com/MathieuBuisson/Powershell-Utility/tree/master/ReadmeFromHelp
@@ -47,7 +49,7 @@ function New-PKGitReadmeFile {
 .PARAMETER ModuleFile
     Absolute path to module's .psm1 file (e.g., c:\users\jbloggs\modules\modulename.psm1) if not providing module name
 
-.PARAMETER ModuleDescription
+.PARAMETER Description
     Text to add after boilerplate; e.g., 'This module contains x PowerShell function(s) and tools' in the About section (defaults to description in module's .psd1 file, if found)
 
 .PARAMETER LabelName
@@ -67,6 +69,7 @@ function New-PKGitReadmeFile {
 
 .EXAMPLE
     PS C:\> New-ToolboxReadmeFile -ModuleName Toolbox -Author "Joe Bloggs" -Force -Verbose
+
         VERBOSE: PSBoundParameters: 
 	
         Key                Value              
@@ -84,8 +87,6 @@ function New-PKGitReadmeFile {
         PipelineInput      False              
         ScriptName         New-ToolboxReadmeFile
         ScriptVersion      5.0.0              
-
-
 
         VERBOSE: [BEGIN: New-ToolboxReadmeFile] Create new Github-flavored markdown README.md file for PowerShell module 'Toolbox' (attempt to look up function versions)
         VERBOSE: [Toolbox] Get or verify module object
@@ -213,7 +214,7 @@ Param(
         HelpMessage = "Full path to module's .psm1 file (e.g., c:\users\jbloggs\modules\modulename.psm1)"
     )]
     [validatescript({
-         If ((Test-Path $_) -and ($_ -match ".psm*")) {$True}
+         If ((Test-Path $_) -and ($_ -match "\.psm*")) {$True}
     })]
     [ValidateNotNullOrEmpty()]
     [string]$ModuleFile,
@@ -222,7 +223,8 @@ Param(
         HelpMessage = "Text to add after boilerplate; e.g., 'This module contains x PowerShell function(s) and tools' in the About section (defaults to description in module's .psd1 file, if found)"
     )]
     [ValidateNotNullOrEmpty()]
-    [string]$ModuleDescription,
+    [Alias("ModuleDescription")]
+    [string]$Description,
 
     [Parameter(
         HelpMessage = "Label to use: Synopsis or Description (default is Synopsis)"
@@ -256,7 +258,7 @@ Param(
 Begin {
 
     # Current version (please keep up to date from comment block)
-    [version]$Version = "05.00.0001"
+    [version]$Version = "05.03.0000"
 
     # Show our settings
     $Source = $PSCmdlet.ParameterSetName
@@ -280,11 +282,133 @@ Begin {
         Param([Parameter(ValueFromPipeline,Mandatory)]$Command)
         Begin{}
         Process{
-        $VersionLine = ((Get-Command $Command -all | Select -ExpandProperty Definition) -split("`n") | 
-            Select-String '[version]$Version' -SimpleMatch).ToString().Trim()
-        [regex]::Matches($VersionLine, '(?<=\").+?(?=\")').Value
+            Try {
+                $VersionLine = ((Get-Command $Command -all | Select -ExpandProperty Definition) -split("`n") | 
+                    Select-String '[version]$Version' -SimpleMatch).ToString().Trim()
+                [regex]::Matches($VersionLine, '(?<=\").+?(?=\")').Value
+            }
+            Catch {}
         }
     }
+
+    # Function to get a module path
+    Function Script:GetModulePath{
+        [Cmdletbinding()]
+        Param([Parameter(Position=0,ValueFromPipeline,Mandatory)]$Name)
+        Begin{}
+        Process{
+            Try {
+                $Msg = "Get module path"
+                Write-Verbose "[$Name] $Msg"
+                $File = Get-Module -ListAvailable $Name -Verbose:$False | Select-Object -ExpandProperty Path
+                $File | Split-Path -Parent
+            }
+            Catch {}
+        }
+    }
+
+    # Function to look through the help for a function & get the version date
+    Function Script:GetFunctionInfo{
+        [Cmdletbinding()]
+        Param(
+            [Parameter(Position=0,ValueFromPipeline,Mandatory)]$Command,
+            [Parameter()]$ModulePath
+        )
+        Begin{}
+        Process{
+            Try {
+                $Msg = "Get function command"
+                Write-Verbose "[$Command] $Msg"
+                $CommandInfo = Get-Command $Command.Trim() -all -ErrorAction Stop
+
+                If (-not $ModulePath) {
+                    $Msg = "Get $($CommandInfo.Source) module path"
+                    Write-Verbose "[$Command] $Msg"
+                    Try {
+                        $ModulePath = GetModulePath $CommandInfo.Source -Verbose:$False -ErrorAction SilentlyContinue
+                    }
+                    Catch {
+                        $Msg = "Module path not available"
+                        Write-Warning "[$Command] $Msg"
+                    }
+                }
+
+                If ($ModulePath) {
+                    $Msg = "Get function file object"
+                    Write-Verbose "[$Command] $Msg"
+                    Try {
+                        If ($FunctionFile = Get-ChildItem -Path $ModulePath -Recurse -Filter *.ps1 -ErrorAction SilentlyContinue | Select-String "^\s{0}Function\s+$($CommandInfo.Name)") {
+                            $Filename = $FunctionFile.Filename
+                            $Filepath = $FunctionFile.Path | Split-Path -Parent
+                        }
+                        Else {$FilePath = $FileName = $Null}
+
+                    }
+                    Catch {
+                        $Msg = "File path not available"
+                        Write-Warning "[$Command] $Msg"
+                    }
+                }
+                Else {
+                    $ModulePath = $FilePath = $FileName = $Null
+                }
+
+                $Msg = "Get function command definition"
+                Write-Verbose "[$Command] $Msg"
+                Try {
+                    
+                    If ($FunctionDef = ($CommandInfo | Select -ExpandProperty Definition -ErrorAction SilentlyContinue) -split("`n")) {
+                    
+                        $Msg = "Get function version number"
+                        Write-Verbose "[$Command] $Msg"
+                        Try {
+                            If ($VersionLine = ($FunctionDef  | Select-String '[version]$Version' -SimpleMatch -ErrorAction SilentlyContinue)) { 
+                                
+                                If ($FunctionVer = [regex]::Matches($VersionLine.ToString().Trim(), '(?<=\").+?(?=\")').Value) {
+
+                                    $Msg = "Get function version date"
+                                    Write-Verbose "[$Command] $Msg"
+                                    Try {
+                                        If ($VersionDate = ($FunctionDef  | Select-String "v$FunctionVer - (\d{2,4}-\d{2,4}-\d{2,4})" -ErrorAction SilentlyContinue | foreach-object { $_.Matches[0].Groups[1].Value })) {
+                                            $VersionDate = (Get-Date $VersionDate -f yyyy-MM-dd)
+                                        }
+                                        Else {$VersionDate = $Null}
+                                    }
+                                    Catch {
+                                        $Msg = "Function version date not available"
+                                        Write-Warning "[$Command] $Msg"
+                                    }
+                                }
+                                Else {
+                                    $FunctionVer = $Null
+                                }   
+                            }
+                        }
+                        Catch {
+                            $Msg = "Function version not available"
+                            Write-Warning "[$Command] $Msg"
+                        }
+                    }
+                }
+                Catch {
+                    $Msg = "Function definition not available"
+                    Write-Warning "[$Command] $Msg"
+                }
+
+
+                [PSCustomObject]@{
+                    Function        = $CommandInfo.Name
+                    Filename        = $Filename
+                    Path            = $FilePath
+                    Module          = $CommandInfo.Source
+                    FunctionVersion = $FunctionVer
+                    VersionDate     = $VersionDate
+                }
+            }
+            Catch {Write-Warning $_.Exception.Message}
+        }
+    } # End GetFunctionInfo
+
     #endregion Functions
 
     # General purpose splat
@@ -427,46 +551,76 @@ Process {
         Write-Verbose "[$($ModuleObj.Name)] $Msg" 
 
         If ($ModuleObj.Author) {
+            
             If ($CurrentParams.Author) {
-                $Msg = "Author name '$Author' specified for README.md will conflict with '$($ModuleObj.Author)' specified in module"
-                Write-Warning $Msg
+                $Msg = "Overwrite module author: '$($ModuleObj.Author)'`n with '$($CurrentParams.Author)'" 
+                Write-Warning "[$($ModuleObj.Name)] $Msg`?" 
+                If ($PSCmdlet.ShouldProcess($ModuleObj.Name,$Msg)) {
+                    $Continue = $True
+                    $Msg = "Overwriting native module author name in readme.md"
+                    Write-Verbose "[$($ModuleObj.Name)] $Msg" 
+                    
+                }
+                Else {
+                    $Msg = "Operation cancelled by user"
+                    Write-Verbose "[$($ModuleObj.Name)] $Msg" 
+                }
             }
             Else {
-                $Author = $ModuleObj.author
-                $Msg = "Found author name '$Author' in module"
-                Write-Verbose "[$($ModuleObj.Name)] $Msg" 
+                $Author = $ModuleObj.Author
+                $Continue = $True
             }
-            $Continue = $True
         }
         Else {
             If ($CurrentParams.Author) {
-                $Msg = "No author name specified in module; -Author specified as '$Author'"
+                $Msg = "No author name found in module; -Author specified"
                 Write-Verbose "[$($ModuleObj.Name)] $Msg" 
                 $Continue = $True
             }
             Else {
-                $Msg = "No author name specified in module; please re-run with -Author"
+                $Msg = "No author name found in module; please re-run with -Author"
                 Write-Warning "[$($ModuleObj.Name)] $Msg" 
             }
         }
+    }
+
+    If ($Continue.IsPresent) {
 
         # Get the description
         If ($ModuleObj.Description) {
-            If (-not $ModuleDescription) {
-                $Msg = "Got module description"
+            
+            If ($CurrentParams.ModuleDescription) {
+                $Continue = $False
+                $Msg = "Overwrite module description: '$($ModuleObj.Description)'`n with '$($CurrentParams.ModuleDescription)'" 
+                Write-Warning "[$($ModuleObj.Name)] $Msg`?" 
+                If ($PSCmdlet.ShouldProcess($ModuleObj.Name,$Msg)) {
+                    $Continue = $True
+                    $Msg = "Overwriting native module description in readme.md"
+                    Write-Verbose "[$($ModuleObj.Name)] $Msg" 
+                }
+                Else {
+                    $Msg = "Operation cancelled by user"
+                    Write-Verbose "[$($ModuleObj.Name)] $Msg" 
+                }
+            }
+            Else {$ModuleDescription = $ModuleObj.Description}
+        }
+        Else {
+            If ($CurrentParams.ModuleDescription) {
+                $Msg = "No description found in module; -Description specified"
                 Write-Verbose "[$($ModuleObj.Name)] $Msg" 
             }
             Else {
-                $Msg = "Parameter -ModuleDescription will override inclusion of native module description"
-                Write-Warning $Msg
+                $Msg = "No description found in  module; please run again with -Description"
+                Write-Warning "[$($ModuleObj.Name)] $Msg" 
+                $Continue = $False
             }
         }
-        Else {
-            If (-not $ModuleDescription) {
-                $Msg = "No native module description found; -ModuleDescription not specified"
-                Write-Warning $Msg
-            }
-        }
+    }
+
+    # Check dependencies & create Readme.md content
+
+    If ($Continue.IsPresent) {
 
         # Check for Requires statements
         $FirstLine = $ModuleObj.Definition -split "`n" | Select-Object -First 1
@@ -485,14 +639,12 @@ Process {
         If ([array]$ReqModules = $ModuleObj.RequiredModules.Name) {
             If ($ReqModules.Count -gt 1) {$RequiredModules = $($ReqModules -join(", "))}
             Else {$RequiredModules = $ReqModules}
+            
+            $Continue = $True
+            $Msg = "Found required modules list"
+            Write-Verbose "[$($ModuleObj.Name)] $Msg" 
         }
-        $Msg = "Found required modules list"
-        Write-Verbose "[$($ModuleObj.Name)] $Msg" 
-    }
-        
-    # Create readme content
-    If ($Continue.IsPresent) { 
-        
+
         $Msg = "Create README.md content" 
         Write-Verbose "[$($ModuleObj.Name)] $Msg"
         Write-Progress -Activity $Activity -CurrentOperation $Msg
@@ -504,7 +656,7 @@ Process {
         $Commands = @()
         $Commands = Get-Command -Module $ModuleObj @StdParams | Where-Object {$_.CommandType -ne "Alias"}
         $CommandsCount = $($Commands.Count)
-        $Msg = "Found $Commandscount functions in module" 
+        $Msg = "Found $Commandscount functions in module" # :`n * $(($Commands.Name | Sort) -join("`n * "))"
         Write-Verbose "[$($ModuleObj.Name)] $Msg" 
 
         # Name/Title
@@ -592,7 +744,7 @@ Process {
                     }
                     
                     If ($CommandHelp) {
-                        If (-not ($VerInfo = GetVersion -Command $Command)) {$VerInfo = "(n/a)"} 
+                        If (-not ($VerInfo = GetVersion -Command $Command -ErrorAction SilentlyContinue)) {$VerInfo = "-"} 
                         $Readme += "|**$($Command.Name)**|$VerInfo|$($CommandHelp -replace("`n","<br/>"))|"
                     }
                 }
