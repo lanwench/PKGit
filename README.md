@@ -6,9 +6,9 @@
 |**Name** |PKGit|
 |**Author** |Paula Kingsley|
 |**Type** |Script|
-|**Version** |1.3.0|
+|**Version** |1.4.0|
 |**Description**|Various functions / wrappers for git commands|
-|**Date**|README.md file generated on Monday, February 5, 2024 4:21:33 PM|
+|**Date**|README.md file generated on Monday, February 5, 2024 4:56:12 PM|
 
 This module contains 11 PowerShell functions or commands
 
@@ -41,8 +41,8 @@ _Changelogs are generally found within individual functions, not per module._
 |**Get-PKGitEmail**|01.01.0000|Returns the git config email address on the local computer: global, local, or both|
 |**Get-PKGitInstall**|05.00.0000|Looks for git.exe on the local computer, in the system path or by folder|
 |**Get-PKGitRemoteOrigin**|03.00.0000|Uses invoke-expression and "git remote show origin" in a folder hierarchy to create a PSCustomObject|
+|**Get-PKGitStatus**|03.02.0000|Invokes git status on one or more git repos|
 |**Get-PKGitWorkingFiles**|02.00.000|Returns the git status and working files for one or more git repos|
-|**Get-PSGitStatus**|03.01.0000|Invokes git status on one or more git repos|
 |**Invoke-PKGitPull**|02.00.0000|Uses invoke-expression and "git pull" with optional parameters in a folder hierarchy|
 |**Remove-PKGitLastCommit**|01.01.0000|Uses invoke-expression and "git reset --soft HEAD^" to remove the last unmerged commit in one or more git repos|
 |**Search-PKGitRepo**|02.00.0000|Searches a directory for directories containing hidden .git files, with option for recurse / depth|

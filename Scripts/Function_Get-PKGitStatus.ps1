@@ -1,114 +1,115 @@
 ﻿#requires -Version 4
 Function Get-PKGitStatus {
     <#
-.SYNOPSIS 
-    Invokes git status on one or more git repos
+    .SYNOPSIS 
+        Invokes git status on one or more git repos
 
-.DESCRIPTION
-    Uses invoke-expression and "git status" on one or more git repos
-    Defaults to current directory
-    First verifies that directory contains a repo & that branch is not up to date
-    Supports ShouldProcess
-    Requires git, of course
-    Returns a PSObject
+    .DESCRIPTION
+        Uses invoke-expression and "git status" on one or more git repos
+        Defaults to current directory
+        First verifies that directory contains a repo & that branch is not up to date
+        Supports ShouldProcess
+        Requires git, of course
+        Returns a PSObject
 
-.NOTES
-    Name    : Function_Get-PSGitStatus.ps1
-    Author  : Paula Kingsley
-    Version : 03.01.0000
-    History :
-    
-        ** PLEASE KEEP $VERSION UPDATED IN BEGIN BLOCK **
-
-        v01.00.0000 - 2021-04-19 - Created script
-        v02.00.0000 - 2022-08-31 - Renamed from Invoke-PSGitStatus; other minor edits
-        v02.01.0000 - 2022-09-20 - Updates/standardization
-        v02.02.0000 - 2023-02-02 - Added attribute for commit/staging status
-        v03.00.0000 - 2023-02-16 - Overhauled; renamed ReturnOriginPath to ShowOriginPath, 
-                                   changed Recurse to NoRecurse, changed output, simplified search
-        v03.01.0000 - 2024-02-05 - Fixed issue with arraylist not showing all results, added -Extended                                   
+    .NOTES
+        Name    : Function_Get-PSGitStatus.ps1
+        Author  : Paula Kingsley
+        Version : 03.02.0000
+        History :
         
-.LINK
-    https://github.com/lanwench/pkgit
+            ** PLEASE KEEP $VERSION UPDATED IN BEGIN BLOCK **
 
+            v01.00.0000 - 2021-04-19 - Created script
+            v02.00.0000 - 2022-08-31 - Renamed from Invoke-PSGitStatus; other minor edits
+            v02.01.0000 - 2022-09-20 - Updates/standardization
+            v02.02.0000 - 2023-02-02 - Added attribute for commit/staging status
+            v03.00.0000 - 2023-02-16 - Overhauled; renamed ReturnOriginPath to ShowOriginPath, 
+                                        changed Recurse to NoRecurse, changed output, simplified search
+            v03.01.0000 - 2024-02-05 - Fixed issue with arraylist not showing all results, added -Extended                                   
+            v03.02.0000 - 2024-02-05 - Added option to return only current/stale 
+            
+    .LINK
+        https://github.com/lanwench/pkgit
 
-.PARAMETER Path
-    Absolute path to one or more git repos (default is current location)
+    .PARAMETER Path
+        Absolute path to one or more git repos (default is current location)
 
-.PARAMETER NoRecurse
-    Don't recurse through subfolders (default is to search all subfolders for hidden .git file)
+    .PARAMETER NoRecurse
+        Don't recurse through subfolders (default is to search all subfolders for hidden .git file)
 
-.PARAMETER Extended
-    Include extended and chattier properties such as message & origin status
+    .PARAMETER StatusType
+        Return output only for repo status (current, stale, or both)    
 
-.PARAMETER ShowOrigin
-    Return origin path using 'git remote show origin 2>&1'    
+    .PARAMETER Extended
+        Include extended and chattier properties such as message & origin status
 
-.EXAMPLE
-    PS C:\Users\jbloggs\git\personal> Get-PSGitStatus  -Verbose                                                           
-        VERBOSE: PSBoundParameters: 
+    .PARAMETER ShowOrigin
+        Return origin path using 'git remote show origin 2>&1'    
 
-        Key           Value
-        ---           -----
-        Verbose       True
-        Path          {C:\Users\jbloggs\git\personal}
-        NoRecurse     False
-        Extended      False
-        ShowOrigin    False
-        ScriptName    Get-PSGitStatus
-        ScriptVersion 3.1.0
-        PipelineInput False
+    .EXAMPLE
+        PS C:\Users\jbloggs\git\personal> Get-PSGitStatus  -Verbose                                                           
+            VERBOSE: PSBoundParameters: 
 
-        VERBOSE: [PREREQUISITES] Found C:\Program Files\Git\cmd\git.exe (version 2.42.0.1)
-        VERBOSE: [BEGIN: Get-PSGitStatus] Invoke git status in folder if a git repo is found
-        VERBOSE: [C:\Users\jbloggs\git\personal] Searching for git repos
-        VERBOSE: [C:\Users\jbloggs\git\personal] 7 git repo(s) found
-        VERBOSE: [C:\Users\jbloggs\git\personal\ADNET] Get git status
-        VERBOSE: [C:\Users\jbloggs\git\personal\PSGit] Get git status
-        VERBOSE: [C:\Users\jbloggs\git\personal\Helpers] Get git status
-        VERBOSE: [C:\Users\jbloggs\git\personal\Tools] Get git status
-        VERBOSE: [C:\Users\jbloggs\git\personal\WindowsAdmin] Get git status
-        VERBOSE: [C:\Users\jbloggs\git\personal\Profiles] Get git status
-        VERBOSE: [C:\Users\jbloggs\git\personal\Sandbox] Get git status
-        VERBOSE: [END: Get-PSGitStatus]                  
+            Key           Value
+            ---           -----
+            Verbose       True
+            Path          {C:\Users\jbloggs\git\personal}
+            NoRecurse     False
+            Extended      False
+            ShowOrigin    False
+            ScriptName    Get-PSGitStatus
+            ScriptVersion 3.1.0
+            PipelineInput False
 
-        Path                                          Name          IsCurrent   PendingUpdates                     
-        ----                                          ----          ---------   --------------                     
-        C:\Users\jbloggs\git\personal\ADNET           ADNET              True   Nothing to commit                  
-        C:\Users\jbloggs\git\personal\PSGit           PSGit             False   Changes not yet staged             
-        C:\Users\jbloggs\git\personal\Helpers         Helpers           False   Changes not yet staged             
-        C:\Users\jbloggs\git\personal\Tools           Tools             False   Untracked files present            
-        C:\Users\jbloggs\git\personal\WindowsAdmin    WindowsAdmin      False   Untracked files present            
-        C:\Users\jbloggs\git\personal\Profiles        Profiles           True   Nothing to commit                  
-        C:\Users\jbloggs\git\personal\Sandbox         Sandbox            True   Nothing to commit  
+            VERBOSE: [PREREQUISITES] Found C:\Program Files\Git\cmd\git.exe (version 2.42.0.1)
+            VERBOSE: [BEGIN: Get-PSGitStatus] Invoke git status in folder if a git repo is found
+            VERBOSE: [C:\Users\jbloggs\git\personal] Searching for git repos
+            VERBOSE: [C:\Users\jbloggs\git\personal] 7 git repo(s) found
+            VERBOSE: [C:\Users\jbloggs\git\personal\ADNET] Get git status
+            VERBOSE: [C:\Users\jbloggs\git\personal\PSGit] Get git status
+            VERBOSE: [C:\Users\jbloggs\git\personal\Helpers] Get git status
+            VERBOSE: [C:\Users\jbloggs\git\personal\Tools] Get git status
+            VERBOSE: [C:\Users\jbloggs\git\personal\WindowsAdmin] Get git status
+            VERBOSE: [C:\Users\jbloggs\git\personal\Profiles] Get git status
+            VERBOSE: [C:\Users\jbloggs\git\personal\Sandbox] Get git status
+            VERBOSE: [END: Get-PSGitStatus]                  
 
-        .EXAMPLE
-        PS C:\> Get-PSGitStatus "$Home\git\personal\Tools" -Extended -ShowOrigin
+            Path                                          Name          IsCurrent   PendingUpdates                     
+            ----                                          ----          ---------   --------------                     
+            C:\Users\jbloggs\git\personal\ADNET           ADNET              True   Nothing to commit                  
+            C:\Users\jbloggs\git\personal\PSGit           PSGit             False   Changes not yet staged             
+            C:\Users\jbloggs\git\personal\Helpers         Helpers           False   Changes not yet staged             
+            C:\Users\jbloggs\git\personal\Tools           Tools             False   Untracked files present            
+            C:\Users\jbloggs\git\personal\WindowsAdmin    WindowsAdmin      False   Untracked files present            
+            C:\Users\jbloggs\git\personal\Profiles        Profiles           True   Nothing to commit                  
+            C:\Users\jbloggs\git\personal\Sandbox         Sandbox            True   Nothing to commit  
 
-            Path           : C:\Users\jbloggs\git\personal\Tools                                                             
-            Name           : Tools                                                                                                
-            Origin         : {https://github.com/jbloggs/Tools.git (fetch), https://github.com/jbloggs/Tools.git (push)}      
-            Branch         : master                                                                                                 
-            IsCurrent      : False                                                                                                  
-            PendingUpdates : Untracked files present                                                                                
-            OriginStatus   : Your branch is up to date with 'origin/master'.                                                        
-            Message        : On branch master                                                                                       
-                            Your branch is up to date with 'origin/master'.                                                        
-                                                                                                                                
-                            Changes not staged for commit:                                                                         
-                            (use "git add <file>..." to update what will be committed)                                           
-                            (use "git restore <file>..." to discard changes in working directory)                                
-                                modified:   Scripts/GetDisabledDate.ps1                                       
-                                                                                                                                
-                            Untracked files:
-                            (use "git add <file>..." to include in what will be committed)
-                                Scripts/Function_Get-DownloadFileInfo.ps1
+            .EXAMPLE
+            PS C:\> Get-PSGitStatus "$Home\git\personal\Tools" -Extended -ShowOrigin
 
-                            no changes added to commit (use "git add" and/or "git commit -a")
+                Path           : C:\Users\jbloggs\git\personal\Tools                                                             
+                Name           : Tools                                                                                                
+                Origin         : {https://github.com/jbloggs/Tools.git (fetch), https://github.com/jbloggs/Tools.git (push)}      
+                Branch         : master                                                                                                 
+                IsCurrent      : False                                                                                                  
+                PendingUpdates : Untracked files present                                                                                
+                OriginStatus   : Your branch is up to date with 'origin/master'.                                                        
+                Message        : On branch master                                                                                       
+                                Your branch is up to date with 'origin/master'.                                                        
+                                                                                                                                    
+                                Changes not staged for commit:                                                                         
+                                (use "git add <file>..." to update what will be committed)                                           
+                                (use "git restore <file>..." to discard changes in working directory)                                
+                                    modified:   Scripts/GetDisabledDate.ps1                                       
+                                                                                                                                    
+                                Untracked files:
+                                (use "git add <file>..." to include in what will be committed)
+                                    Scripts/Function_Get-DownloadFileInfo.ps1
 
-#>
+                                no changes added to commit (use "git add" and/or "git commit -a")
 
-
+    #>
     [CmdletBinding()]
     Param(
         [Parameter(
@@ -126,6 +127,12 @@ Function Get-PKGitStatus {
         [Switch]$NoRecurse,
 
         [Parameter(
+            HelpMessage = "Return output only for repo status (current, stale, or both)"
+        )]
+        [ValidateSet("All","CurrentOnly","StaleOnly")]
+        [string]$StatusType = "All",
+
+        [Parameter(
             HelpMessage = "Include extended and chattier properties such as message & origin status"
         )]
         [switch]$Extended,
@@ -139,7 +146,7 @@ Function Get-PKGitStatus {
     Begin {
     
         # Current version (please keep up to date from comment block)
-        [version]$Version = "03.01.0000"
+        [version]$Version = "03.02.0000"
 
         # How did we get here?
         [switch]$PipelineInput = $MyInvocation.ExpectingInput
@@ -166,7 +173,6 @@ Function Get-PKGitStatus {
         }
 
         # Function to get git repo paths
-        #[switch]$Recurse = (-not $NoRecurse.IsPresent)
         $Subtree = (-not $NoRecurse.IsPresent)
         Function GetRepo ([Parameter(Mandatory, Position = 0)]$Dir, $Recurse = $Subtree) {
             Try {
@@ -180,15 +186,8 @@ Function Get-PKGitStatus {
         # Track where we started out
         $StartLocation = Get-Location
 
-        # Start arraylist
+        # Start arraylist & determine what to return
         $Results = [System.Collections.ArrayList]::new()
-        
-        # Display options
-        #Switch ($OutputType) {
-        #    Standard { $Select = "Path,Name,Origin,IsCurrent,PendingUpdates" -split (",") }
-        #    Extended { $Select = "Path,Name,Origin,Branch,IsCurrent,PendingUpdates,OriginStatus,Message" -split (",") }
-        #}
-        
         If ($Extended.IsPresent) { $Select = "Path,Name,Origin,Branch,IsCurrent,PendingUpdates,OriginStatus,Message" -split (",") }
         Else { $Select = "Path,Name,Origin,IsCurrent,PendingUpdates" -split (",") }
         If ( -not $ShowOrigin.IsPresent) { $Select = $Select | Where-Object { $_ -notmatch "Origin" } }
@@ -281,7 +280,14 @@ Function Get-PKGitStatus {
 
         } #end foreach item in path
 
-        If ($Results) { Write-Output $Results }
+        If ($Results) { 
+            switch ($StatusType) {
+                All {}
+                CurrentOnly {$Results =  ($Results | Where-Object {$_.IsCurrent -eq $True})}
+                StaleOnly {$Results =  ($Results | Where-Object {$_.IsCurrent -eq $False})}
+            }
+            Write-Output $Results
+        }
     }
     End {
 
