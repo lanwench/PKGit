@@ -1,5 +1,5 @@
 ﻿#requires -Version 4
-Function Get-PSGitStatus {
+Function Get-PKGitStatus {
     <#
 .SYNOPSIS 
     Invokes git status on one or more git repos
