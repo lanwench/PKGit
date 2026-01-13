@@ -15,7 +15,7 @@ Function Invoke-PKGitPull {
 .NOTES
     Name    : Function_Invoke-PKGitPull.ps1
     Author  : Paula Kingsley
-    Version : 02.00.0000
+    Version : 02.01.0000
     History :
     
         ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
@@ -23,6 +23,7 @@ Function Invoke-PKGitPull {
         v01.00.0000 - 2021-04-14 - Created script
         v01.00.1000 - 2021-04-19 - Fixed erroneous name in Notes block, changed verbose to warning if no repo found
         v02.00.1000 - 2022-09-20 - Standardized with other functions
+        v02.01.0000 - 2025-08-13 - Minor cosmetic changes for standardization
         
 .LINK
     https://github.com/jbloggs/PKGit
@@ -55,14 +56,14 @@ Function Invoke-PKGitPull {
         VERBOSE: [C:\Repos\ADACLScanner] Get remote origin info
         VERBOSE: [C:\Repos\ADACLScanner] Invoke 'git pull' from branch 'master' on Fetch URL https://github.com/canix1/ADACLScanner.git
         From https://github.com/canix1/ADACLScanner
-           fca74ca..6e4f7c4  master     -> origin/master
+            fca74ca..6e4f7c4  master     -> origin/master
          * [new tag]         7.2        -> 7.2
          * [new tag]         7.1        -> 7.1
         Updating fca74ca..6e4f7c4
         Fast-forward
-         ADACLScan.ps1 | 1733 +++++++++++++++++++++++++++++++++++----------------------
-         README.md     |   14 +-
-         2 files changed, 1069 insertions(+), 678 deletions(-)
+            ADACLScan.ps1 | 1733 +++++++++++++++++++++++++++++++++++----------------------
+            README.md     |   14 +-
+            2 files changed, 1069 insertions(+), 678 deletions(-)
         
         VERBOSE: [END: Invoke-PKGitPull] Invoke git pull in one or more git repos
 
@@ -89,14 +90,14 @@ Param(
 Begin {
     
     # Current version (please keep up to date from comment block)
-    [version]$Version = "02.00.0000"
+    [version]$Version = "02.01.0000"
 
     # How did we get here?
     [switch]$PipelineInput = $MyInvocation.ExpectingInput
     $CurrentParams = $PSBoundParameters
     $ScriptName = $MyInvocation.MyCommand.Name
-    $MyInvocation.MyCommand.Parameters.keys | Where {$CurrentParams.keys -notContains $_} | 
-        Where {Test-Path Variable:$_}| Foreach {
+    $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} | 
+        Where-Object {Test-Path Variable:$_}| Foreach {
             $CurrentParams.Add($_, (Get-Variable $_).value)
         }
     $CurrentParams.Add("ScriptName",$ScriptName)
@@ -106,8 +107,7 @@ Begin {
 
     If (-not ($GitCmd = Get-Command git.exe -ErrorAction SilentlyContinue)) {
         $Msg = "Git.exe not found on '$Env:ComputerName'; please install from https://git-scm.com/download/win"
-        Write-Error $Msg
-        Break
+        Throw $Msg
     }
 
     #region Functions
@@ -115,20 +115,13 @@ Begin {
     # Function to verify/get repo path fullname
     Function GetRepoPath([Parameter(Position=0)]$P){
         Try {
-            If ($P -is [string]) {
-                $FolderObj = Get-Item -Path $P -Verbose:$False   
-            }
-            ElseIf ($P -is [System.Management.Automation.PathInfo]) {
-                $FolderObj = Get-Item -Path $P.FullName -Verbose:$False                   
-            }
-            Elseif ($P -is [System.IO.FileSystemInfo]) {
-                $FolderObj = $P
-            }
+            If ($P -is [string]) {$FolderObj = Get-Item -Path $P -Verbose:$False   }
+            ElseIf ($P -is [System.Management.Automation.PathInfo]) {$FolderObj = Get-Item -Path $P.FullName -Verbose:$False                   }
+            Elseif ($P -is [System.IO.FileSystemInfo]) {$FolderObj = $P}
             Else {
                 $Msg = "Unknown object type; please use a valid path string or directory object"
                 Throw $Msg
             }
-
             If ($FolderObj) {
                 If ([object[]]$GitRepos = $FolderObj | Get-Childitem -Recurse:$Recurse -Filter .git -Directory -Attributes H -ErrorAction Stop) {
                     $GitRepos.FullName | Split-Path -Parent
@@ -206,4 +199,6 @@ End {
     Write-Progress -Activity * -Completed
 }
 } #end Invoke-PKGitPull
+
+
 
