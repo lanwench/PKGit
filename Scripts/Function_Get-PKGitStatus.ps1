@@ -1,298 +1,378 @@
-﻿#requires -Version 4
+#requires -Version 4
 Function Get-PKGitStatus {
     <#
-    .SYNOPSIS 
-        Invokes git status on one or more git repos
+    .SYNOPSIS
+        Get the status of one or more git repositories, returning branch, origin, working tree state, and a count-based summary of uncommitted changes
 
     .DESCRIPTION
-        Uses invoke-expression and "git status" on one or more git repos
-        Defaults to current directory
-        First verifies that directory contains a repo & that branch is not up to date
-        Supports ShouldProcess
-        Requires git, of course
-        Returns a PSObject
+        Retrieves git repository status from one or more git repositories using native git commands
+        Accepts pipeline input for file paths or direct path parameters; use -Recurse to search subdirectories for repos
+        Requires git to be installed and available in the system path
+
+        Default output (Path, Name, Origin, IsCurrent, Summary):
+            - Origin is always returned from git config remote.origin.url
+            - IsCurrent is a boolean derived from git status --porcelain
+            - Summary is a human-readable count of uncommitted changes, e.g. "3 unstaged changes, 2 untracked files",
+                or "Working tree clean" if the repo has no local changes; counts cover staged changes, unstaged
+                modifications, untracked files, and merge conflicts
+
+        When -Extended is specified, adds Branch, Upstream, AheadBy, BehindBy, NumStaged, NumUnstaged, NumUntracked, NumConflicts, LastSyncDate, LastCommitDate, LastCommitter, Files, OriginStatus, Message ...
+            - AheadBy and BehindBy are integer counts from git rev-list (ahead/behind remote)
+            - NumStaged, NumUnstaged, NumUntracked, NumConflicts are integer counts of changes by type
+            - LastSyncDate is the timestamp of the most recent sync with remote (from .git/FETCH_HEAD if available, else clone or create date)
+            - LastCommitDate is the timestamp of the most recent commit
+            - LastCommitter is the committer name and email from the most recent commit
+            - Files is a collection of porcelain status lines for all working and untracked files
+            - Message is the full git status output as a string array
+            - Use -CollectionsToStrings (Extended ParameterSet only) to join Files and Message with newlines
+                instead of returning them as arrays
 
     .NOTES
-        Name    : Function_Get-PSGitStatus.ps1
+        Name    : Function_Get-PKGitStatus.ps1
         Author  : Paula Kingsley
-        Version : 03.02.0000
+        Version : 04.03
         History :
-        
+
             ** PLEASE KEEP $VERSION UPDATED IN BEGIN BLOCK **
 
-            v01.00.0000 - 2021-04-19 - Created script
-            v02.00.0000 - 2022-08-31 - Renamed from Invoke-PSGitStatus; other minor edits
-            v02.01.0000 - 2022-09-20 - Updates/standardization
-            v02.02.0000 - 2023-02-02 - Added attribute for commit/staging status
-            v03.00.0000 - 2023-02-16 - Overhauled; renamed ReturnOriginPath to ShowOriginPath, 
+            v01.00 - 2021-04-19 - Created script
+            v02.00 - 2022-08-31 - Renamed from Invoke-PSGitStatus; other minor edits
+            v02.01 - 2022-09-20 - Updates/standardization
+            v02.02 - 2023-02-02 - Added attribute for commit/staging status
+            v03.00 - 2023-02-16 - Overhauled; renamed ReturnOriginPath to ShowOriginPath,
                                         changed Recurse to NoRecurse, changed output, simplified search
-            v03.01.0000 - 2024-02-05 - Fixed issue with arraylist not showing all results, added -Extended                                   
-            v03.02.0000 - 2024-02-05 - Added option to return only current/stale 
-            
+            v03.01 - 2024-02-05 - Fixed issue with arraylist not showing all results, added -Extended
+            v03.02 - 2024-02-05 - Added option to return only current/stale
+            v04.00 - 2026-06-06 - Overhauled for consistency with others in module; added porcelain-derived details, LastCommitDate, LastCommitter, LastSyncDate (FETCH_HEAD or clone date fallback)
+
     .LINK
         https://github.com/lanwench/pkgit
 
     .PARAMETER Path
         Absolute path to one or more git repos (default is current location)
 
-    .PARAMETER NoRecurse
-        Don't recurse through subfolders (default is to search all subfolders for hidden .git file)
-
-    .PARAMETER StatusType
-        Return output only for repo status (current, stale, or both)    
+    .PARAMETER Recurse
+        Recurse subfolders in path
 
     .PARAMETER Extended
-        Include extended and chattier properties such as message & origin status
+        Include extended properties: branch, upstream, ahead/behind counts, working file details, origin status, full status message
 
-    .PARAMETER ShowOrigin
-        Return origin path using 'git remote show origin 2>&1'    
+    .PARAMETER CollectionsToStrings
+        Format collection-valued properties (Files, Message) as newline-separated strings; requires -Extended
 
     .EXAMPLE
-        PS C:\Users\jbloggs\git\personal> Get-PSGitStatus  -Verbose                                                           
-            VERBOSE: PSBoundParameters: 
+        PS /users/jane/repos/kittens> Get-PKGitStatus -Verbose
+        Returns git status from the current directory with verbose output showing parameter details and search process.
 
-            Key           Value
-            ---           -----
-            Verbose       True
-            Path          {C:\Users\jbloggs\git\personal}
-            NoRecurse     False
-            Extended      False
-            ShowOrigin    False
-            ScriptName    Get-PSGitStatus
-            ScriptVersion 3.1.0
-            PipelineInput False
+        VERBOSE: PSBoundParameters:
 
-            VERBOSE: [PREREQUISITES] Found C:\Program Files\Git\cmd\git.exe (version 2.42.0.1)
-            VERBOSE: [BEGIN: Get-PSGitStatus] Invoke git status in folder if a git repo is found
-            VERBOSE: [C:\Users\jbloggs\git\personal] Searching for git repos
-            VERBOSE: [C:\Users\jbloggs\git\personal] 7 git repo(s) found
-            VERBOSE: [C:\Users\jbloggs\git\personal\ADNET] Get git status
-            VERBOSE: [C:\Users\jbloggs\git\personal\PSGit] Get git status
-            VERBOSE: [C:\Users\jbloggs\git\personal\Helpers] Get git status
-            VERBOSE: [C:\Users\jbloggs\git\personal\Tools] Get git status
-            VERBOSE: [C:\Users\jbloggs\git\personal\WindowsAdmin] Get git status
-            VERBOSE: [C:\Users\jbloggs\git\personal\Profiles] Get git status
-            VERBOSE: [C:\Users\jbloggs\git\personal\Sandbox] Get git status
-            VERBOSE: [END: Get-PSGitStatus]                  
+        Key                  Value
+        ---                  -----
+        Verbose              True
+        Path                 {/users/jane/repos/kittens}
+        Recurse              False
+        Extended             False
+        CollectionsToStrings False
+        ComputerName         mackie.local
+        ScriptName           Get-PKGitStatus
+        ScriptVersion        4.0
+        PipelineInput        False
 
-            Path                                          Name          IsCurrent   PendingUpdates                     
-            ----                                          ----          ---------   --------------                     
-            C:\Users\jbloggs\git\personal\ADNET           ADNET              True   Nothing to commit                  
-            C:\Users\jbloggs\git\personal\PSGit           PSGit             False   Changes not yet staged             
-            C:\Users\jbloggs\git\personal\Helpers         Helpers           False   Changes not yet staged             
-            C:\Users\jbloggs\git\personal\Tools           Tools             False   Untracked files present            
-            C:\Users\jbloggs\git\personal\WindowsAdmin    WindowsAdmin      False   Untracked files present            
-            C:\Users\jbloggs\git\personal\Profiles        Profiles           True   Nothing to commit                  
-            C:\Users\jbloggs\git\personal\Sandbox         Sandbox            True   Nothing to commit  
+        VERBOSE: [BEGIN: Get-PKGitStatus] Get git status
+        VERBOSE: Commands:
 
-            .EXAMPLE
-            PS C:\> Get-PSGitStatus "$Home\git\personal\Tools" -Extended -ShowOrigin
+        GetStatus      : git -C <path> status 2>&1
+        GetBranch      : git -C <path> branch 2>&1
+        GetConfig      : git -C <path> config remote.origin.url
+        GetPorcelain   : git -C <path> status --porcelain
+        GetAheadBehind : git -C <path> rev-list --count (Extended only)
 
-                Path           : C:\Users\jbloggs\git\personal\Tools                                                             
-                Name           : Tools                                                                                                
-                Origin         : {https://github.com/jbloggs/Tools.git (fetch), https://github.com/jbloggs/Tools.git (push)}      
-                Branch         : master                                                                                                 
-                IsCurrent      : False                                                                                                  
-                PendingUpdates : Untracked files present                                                                                
-                OriginStatus   : Your branch is up to date with 'origin/master'.                                                        
-                Message        : On branch master                                                                                       
-                                Your branch is up to date with 'origin/master'.                                                        
-                                                                                                                                    
-                                Changes not staged for commit:                                                                         
-                                (use "git add <file>..." to update what will be committed)                                           
-                                (use "git restore <file>..." to discard changes in working directory)                                
-                                    modified:   Scripts/GetDisabledDate.ps1                                       
-                                                                                                                                    
-                                Untracked files:
-                                (use "git add <file>..." to include in what will be committed)
-                                    Scripts/Function_Get-DownloadFileInfo.ps1
+        VERBOSE: [/users/jane/repos/kittens] Searching for git repo
+        VERBOSE: [/users/jane/repos/kittens] 1 git repo(s) found
+        VERBOSE: [/users/jane/repos/kittens] Get git status
+        VERBOSE: [END: Get-PKGitStatus] Script ran successfully
 
-                                no changes added to commit (use "git add" and/or "git commit -a")
+        Path           : /users/jane/repos/kittens
+        Name           : kittens
+        Origin         : https://github.com/jbloggs/kittens.git
+        IsCurrent      : False
+        Summary        : 1 unstaged change, 1 untracked file
+
+    .EXAMPLE
+        PS /users/shared> Get-PKGitStatus -Path /users/jane/junkdrawer -Recurse -Verbose | Format-Table -AutoSize
+        Returns a summary status from all git repositories in the named directory and subdirectories
+
+        Path                                       Name         Origin                                      IsCurrent   Summary
+        ----                                       ----         ------                                      ---------   -------
+        /users/jane/junkdrawer/pythonstuff  pythonstuff  https://github.com/jbloggs/pythonstuff.git       True   Working tree clean
+        /users/jane/junkdrawer/PSGit        PSGit        https://github.com/jbloggs/PSGit.git            False   3 unstaged changes
+        /users/jane/junkdrawer/Helpers      Helpers      https://github.com/jbloggs/Helpers.git          False   2 untracked files
+
+    .EXAMPLE
+        PS C:\> Get-PKGitStatus -Path C:\Users\jbloggs\git\personal\Tools -Extended -CollectionsToStrings
+        Returns full extended status with all working file data, fetch and commit info; Files and Message formatted as strings.
+
+        Path           : C:\Users\jbloggs\git\personal\Tools
+        Name           : Tools
+        Origin         : https://github.com/jbloggs/Tools.git
+        IsCurrent      : False
+        Branch         : main
+        Upstream       : origin/main
+        AheadBy        : 0
+        BehindBy       : 0
+        NumStaged      : 0
+        NumUnstaged    : 1
+        NumUntracked   : 1
+        NumConflicts   : 0
+        LastFetchDate  : 2026-06-05T11:15:42-07:00
+        LastCommitDate : 2026-06-05T14:22:17-07:00
+        LastCommitter  : Jane Bloggs (jbloggs@github.com)
+        Files          : M Scripts/GetDisabledDate.ps1
+                         ?? Scripts/Function_Get-DownloadFileInfo.ps1
+        OriginStatus   : Your branch is up to date with 'origin/main'.
+        Message        : On branch main
+                         Your branch is up to date with 'origin/main'.
+                         Changes not staged for commit:
+                         modified:   Scripts/GetDisabledDate.ps1
+                         Untracked files:
+                         Scripts/Function_Get-DownloadFileInfo.ps1
 
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = "Default")]
     Param(
         [Parameter(
+            ParameterSetName = "Default",
             Position = 0,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            HelpMessage = "Absolute path to one or more git repos (default is current location)"
+            HelpMessage = "Absolute path to git repos (default is current location)"
+        )]
+        [Parameter(
+            ParameterSetName = "Extended",
+            Position = 0,
+            ValueFromPipeline,
+            ValueFromPipelineByPropertyName,
+            HelpMessage = "Absolute path to git repos (default is current location)"
         )]
         [Alias("FullName", "RepoPath")]
         [object[]]$Path = (Get-Location).Path,
 
         [Parameter(
-            HelpMessage = "Don't recurse through subfolders (default is to search all subfolders for hidden .git file)"
+            ParameterSetName = "Default",
+            HelpMessage = "Recurse subfolders in path"
         )]
-        [Switch]$NoRecurse,
+        [Parameter(
+            ParameterSetName = "Extended",
+            HelpMessage = "Recurse subfolders in path"
+        )]
+        [Switch]$Recurse,
 
         [Parameter(
-            HelpMessage = "Return output only for repo status (current, stale, or both)"
-        )]
-        [ValidateSet("All","CurrentOnly","StaleOnly")]
-        [string]$StatusType = "All",
-
-        [Parameter(
-            HelpMessage = "Include extended and chattier properties such as message & origin status"
+            ParameterSetName = "Extended",
+            HelpMessage = "Include extended properties: branch, upstream, ahead/behind counts, working file details, origin status, full status message"
         )]
         [switch]$Extended,
 
         [Parameter(
-            HelpMessage = "Return origin path using 'git remote show origin 2>&1'"
+            ParameterSetName = "Extended",
+            HelpMessage = "Format collection-valued properties (Files, Message) as newline-separated strings; requires -Extended"
         )]
-        [Switch]$ShowOrigin
+        [Switch]$CollectionsToStrings
 
     )
     Begin {
-    
+
         # Current version (please keep up to date from comment block)
-        [version]$Version = "03.02.0000"
+        [version]$Version = "04.00"
 
         # How did we get here?
         [switch]$PipelineInput = $MyInvocation.ExpectingInput
         $CurrentParams = $PSBoundParameters
         $ScriptName = $MyInvocation.MyCommand.Name
-        $MyInvocation.MyCommand.Parameters.keys | Where-Object { $CurrentParams.keys -notContains $_ } | 
-        Where-Object { Test-Path Variable:$_ } | Foreach-Object {
+        $MyInvocation.MyCommand.Parameters.keys | Where-Object { $CurrentParams.keys -notContains $_ } |
+        Where-Object { Test-Path Variable:$_ } | ForEach-Object {
             $CurrentParams.Add($_, (Get-Variable $_).value)
         }
+        $ComputerName = [System.Net.Dns]::GetHostName()
+        $CurrentParams.Add("ComputerName", $ComputerName)
         $CurrentParams.Add("ScriptName", $ScriptName)
         $CurrentParams.Add("ScriptVersion", $Version)
         $CurrentParams.Add("PipelineInput", $PipelineInput)
         Write-Verbose "PSBoundParameters: `n`t$($CurrentParams | Format-Table -AutoSize | out-string )"
 
-        # We need git, obviously
-        If (-not ($GitCmd = Get-Command git.exe -ErrorAction SilentlyContinue)) {
-            $Msg = "Failed to find git.exe on '$Env:ComputerName'; please install from https://git-scm.com/download/win"
-            Write-Error "[PREREQUISITES] $Msg"
-            Break
+        If (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+            Throw "git not found in path! Please ensure git is installed and available in the system path before running this script."
+        }
+
+        # Build activity description
+        $Activity = "Get git status"
+        If ($Recurse.IsPresent) { $Activity += " for all repos found in subfolders" }
+        If ($Extended.IsPresent) { $Activity += " with extended properties" }
+        If ($CollectionsToStrings.IsPresent) { $Activity += " (collections as strings)" }
+
+        $Commands = [PSCustomObject]@{
+            GetStatus      = 'git -C <path> status 2>&1'
+            GetBranch      = 'git -C <path> branch 2>&1'
+            GetConfig      = 'git -C <path> config remote.origin.url'
+            GetPorcelain   = 'git -C <path> status --porcelain'
+            GetAheadBehind = 'git -C <path> rev-list --count (Extended only)'
+            GetLastSync    = 'Get-Item <path>/.git/FETCH_HEAD or git log --all --reverse (Extended only)'
+            GetLastCommit  = 'git -C <path> log -1 --format=%cI%cn (%ce) (Extended only)'
+        }
+
+        Write-Verbose "[BEGIN: $ScriptName] $Activity"
+        Write-Verbose "Commands: `n`t$($Commands | Format-List | out-string )"
+
+        # Build $Select for what properties to return
+        If ($Extended.IsPresent) {
+            $Select = "Path", "Name", "Origin", "IsCurrent", "Branch", "Upstream", "AheadBy", "BehindBy", "NumStaged", "NumUnstaged", "NumUntracked", "NumConflicts", "LastSyncDate", "LastCommitDate", "LastCommitter", "Files", "OriginStatus", "Message"
         }
         Else {
-            $Msg = "Found $($GitCmd.Path) (version $($GitCmd.Version))"  
-            Write-Verbose "[PREREQUISITES] $Msg"
+            $Select = "Path", "Name", "Origin", "IsCurrent", "Summary"
         }
-
-        # Function to get git repo paths
-        $Subtree = (-not $NoRecurse.IsPresent)
-        Function GetRepo ([Parameter(Mandatory, Position = 0)]$Dir, $Recurse = $Subtree) {
-            Try {
-                If ($R = Get-ChildItem -path $Dir -Recurse:$Recurse -Hidden -filter .git -ErrorAction Stop) {
-                    $R.FullName | Split-Path -Parent
-                }
-            }
-            Catch { $False }
-        }
-
-        # Track where we started out
-        $StartLocation = Get-Location
-
-        # Start arraylist & determine what to return
-        $Results = [System.Collections.ArrayList]::new()
-        If ($Extended.IsPresent) { $Select = "Path,Name,Origin,Branch,IsCurrent,PendingUpdates,OriginStatus,Message" -split (",") }
-        Else { $Select = "Path,Name,Origin,IsCurrent,PendingUpdates" -split (",") }
-        If ( -not $ShowOrigin.IsPresent) { $Select = $Select | Where-Object { $_ -notmatch "Origin" } }
-
-        # Let's go
-        If ($Subtree) { $Activity = "Invoke git status in folder if a git repo is found" }
-        Else { $Activity = "Invoke git status in folder hierarchy if a git repo is found" }
-        Write-Verbose "[BEGIN: $ScriptName] $Activity"
 
     }
-    Process {    
-    
-        $TotalPaths = $Path.Count
-        $CurrentPath = 0
-    
+    Process {
+
         Foreach ($P in $Path) {
-        
-            $CurrentPath ++
-            
             Try {
                 If ($P -is [string] -or $P -is [System.IO.FileSystemInfo]) { $Label = $P }
                 ElseIf ($P -is [System.Management.Automation.PathInfo]) { $Label = $P.FullName }
-        
-                $Msg = "Searching for git repos"
-                If ($Recurse.IsPresent) { $Msg += " (search subfolders recursively)" }
-                Write-Verbose "[$Label] $Msg"
-                Write-Progress  -Id 1 -Activity $Activity -CurrentOperation $Msg -Status $P -PercentComplete ($CurrentPath / $TotalPaths * 100)
-            
-                $Repos = GetRepo -Dir $P
-                $TotalRepos = $Repos.Count
-                $CurrentRepo = 0
-                $Msg = "$TotalRepos git repo(s) found"
-                Write-Verbose "[$Label] $Msg"
-                
-                Foreach ($Repo in ($Repos | Sort-Object Name)) { 
-                
-                    $CurrentRepo ++
-                    Set-Location $Repo
-                    $Label = $Repo
-                    Write-Verbose "[$Label] Get git status"
 
-                    If ($Status = Invoke-Expression -Command "git status 2>&1" -ErrorAction SilentlyContinue) {
+                Write-Verbose "[$Label] Searching for git repos"
 
-                        $Name = (Split-Path -Leaf (git remote get-url origin)).Replace(".git", $Null)
-                        $Branch = ((Invoke-Expression -Command "git branch 2>&1"  -ErrorAction SilentlyContinue | Where-Object { $_ -match "\*" }) -replace ("\*", $Null)).Trim()
-                        If ($ShowOrigin.IsPresent) {
-                            If ($Remote = (Invoke-Expression "git remote -v 2>&1" -ErrorAction SilentlyContinue)) { $Remote = $Remote -Replace ("origin\s+", $Null) }
-                            Else { $Remote = "ERROR" }
+                [object[]]$Repos = Test-PKGitRepo -Path $P -Recurse:$Recurse.IsPresent -Verbose:$False
+                If ($Repos) {
+                    $Msg = "$($Repos.Count) git repo(s) found"
+                    Write-Verbose "[$Label] $Msg"
+
+                    Foreach ($Repo in ($Repos | Sort-Object | Select-Object -Unique)) {
+                        $Label = $Repo
+                        Write-Verbose "[$Label] Get git status"
+
+                        Try {
+                            $Status = git -C "$Repo" status 2>&1
+                            $ExitCode = $LASTEXITCODE
+
+                            If ($ExitCode -eq 0 -and $Status) {
+                                $Origin   = git -C "$Repo" config remote.origin.url 2>$null
+                                $Name     = (Split-Path -Leaf $Origin).Replace(".git", $Null)
+                                $Branch   = ((git -C "$Repo" branch 2>&1 | Where-Object { $_ -match "\*" }) -replace ("\*", $Null)).Trim()
+
+                                # Porcelain for counts (we always run this, as it's also used for Summary and IsCurrent)
+                                $Porcelain      = git -C "$Repo" status --porcelain 2>$null
+                                $StagedCount    = ($Porcelain | Where-Object { $_ -match '^[MADRC]' }).Count
+                                $UnstagedCount  = ($Porcelain | Where-Object { $_ -match '^[ MADRC][MD]' }).Count
+                                $UntrackedCount = ($Porcelain | Where-Object { $_ -match '^\?\?' }).Count
+                                $ConflictCount  = ($Porcelain | Where-Object { $_ -match '^[UA][AU]|^DD' }).Count
+                                $Current        = ($StagedCount + $UnstagedCount + $UntrackedCount + $ConflictCount) -eq 0
+
+                                If ($Current) {
+                                    $Summary = "Working tree clean"
+                                }
+                                Else {
+                                    $Parts = @()
+                                    If ($ConflictCount -gt 0)  { $Parts += "$ConflictCount conflict$(If ($ConflictCount -ne 1) {'s'})" }
+                                    If ($StagedCount -gt 0)    { $Parts += "$StagedCount staged change$(If ($StagedCount -ne 1) {'s'})" }
+                                    If ($UnstagedCount -gt 0)  { $Parts += "$UnstagedCount unstaged change$(If ($UnstagedCount -ne 1) {'s'})" }
+                                    If ($UntrackedCount -gt 0) { $Parts += "$UntrackedCount untracked file$(If ($UntrackedCount -ne 1) {'s'})" }
+                                    $Summary = $Parts -join ", "
+                                }
+
+                                If ($Extended.IsPresent) {
+                                    $Upstream = git -C "$Repo" rev-parse --abbrev-ref "@{u}" 2>$null
+                                    $AheadBy  = 0
+                                    $BehindBy = 0
+                                    If ($Upstream -and $Upstream -ne "HEAD") {
+                                        $AheadBy  = [int](git -C "$Repo" rev-list --count "$Upstream..$Branch" 2>$null)
+                                        $BehindBy = [int](git -C "$Repo" rev-list --count "$Branch..$Upstream" 2>$null)
+                                    }
+
+                                    # Get last sync date: FETCH_HEAD if available, else clone date from .git/config
+                                    $FetchHeadPath = "$Repo/.git/FETCH_HEAD"
+                                    If (Test-Path $FetchHeadPath) {
+                                        $SyncTime = (Get-Item $FetchHeadPath -ErrorAction SilentlyContinue).LastWriteTime
+                                        $LastSyncDate = $SyncTime.ToString('s') + $SyncTime.ToString('zzz')
+                                    }
+                                    Else {
+                                        # Fall back to clone date (.git/config creation time)
+                                        $ConfigPath = "$Repo/.git/config"
+                                        If (Test-Path $ConfigPath) {
+                                            $ConfigTime = (Get-Item $ConfigPath -ErrorAction SilentlyContinue).LastWriteTime
+                                            $LastSyncDate = $ConfigTime.ToString('s') + $ConfigTime.ToString('zzz')
+                                        }
+                                        Else {
+                                            $LastSyncDate = $Null
+                                        }
+                                    }
+
+                                    # Get last commit info
+                                    $LastCommitInfo = git -C "$Repo" log -1 --format="%cI`t%cn (%ce)" 2>$null
+                                    If ($LastCommitInfo) {
+                                        $LastCommitParts = $LastCommitInfo -split "`t"
+                                        $LastCommitDate = $LastCommitParts[0]
+                                        $LastCommitter = $LastCommitParts[1]
+                                    }
+                                    Else {
+                                        $LastCommitDate = $Null
+                                        $LastCommitter = $Null
+                                    }
+
+                                    $WorkingFiles = @($Porcelain -split "`n" | Where-Object { $_ })
+                                    $Files        = If ($CollectionsToStrings.IsPresent) { ($WorkingFiles | ForEach-Object { $_.TrimStart() }) -join "`n" } Else { $WorkingFiles }
+                                    $MsgOut       = If ($CollectionsToStrings.IsPresent) { $Status -join "`n" } Else { $Status }
+                                }
+                                Else {
+                                    $Upstream = $Null; $AheadBy = $Null; $BehindBy = $Null
+                                    $StagedCount = $Null; $UnstagedCount = $Null; $UntrackedCount = $Null; $ConflictCount = $Null
+                                    $LastSyncDate = $Null; $LastCommitDate = $Null; $LastCommitter = $Null
+                                    $Files = $Null; $MsgOut = $Null
+                                }
+
+                                $Output = [PSCustomObject]@{
+                                    Path           = $Repo
+                                    Name           = $Name
+                                    Origin         = $Origin
+                                    Branch         = $Branch
+                                    Upstream       = $Upstream
+                                    IsCurrent      = $Current
+                                    Summary        = $Summary
+                                    AheadBy        = $AheadBy
+                                    BehindBy       = $BehindBy
+                                    NumStaged      = $StagedCount
+                                    NumUnstaged    = $UnstagedCount
+                                    NumUntracked   = $UntrackedCount
+                                    NumConflicts   = $ConflictCount
+                                    LastSyncDate   = $LastSyncDate
+                                    LastCommitDate = $LastCommitDate
+                                    LastCommitter  = $LastCommitter
+                                    Files          = $Files
+                                    OriginStatus   = ($Status | Select-String "your branch is").ToString()
+                                    Message        = $MsgOut
+                                }
+                                Write-Output ($Output | Select-Object $Select)
+                            }
+                            ElseIf ($ExitCode -ne 0) {
+                                Write-Warning "[$Label] Operation failed; $($Status -join ' ')"
+                            }
                         }
-                        
-                        Switch -Regex ($Status) {
-                            "Nothing to commit|working tree clean" {
-                                $Current = $True
-                                $FileStatus = "Nothing to commit"
-                            }
-                            "changes staged to commit" {
-                                $Current = $False
-                                $FileStatus = "Changes staged"
-                            }
-                            "changes not staged for commit" {
-                                $Current = $False
-                                $FileStatus = "Changes not yet staged"
-                            }
-                            "untracked files" {
-                                $Current = $False
-                                $FileStatus = "Untracked files present"
-                            }
-                            "Changes to be committed" {
-                                $Current = $False
-                                $FileStatus = "Uncommitted changes"
-                            }
+                        Catch {
+                            Write-Warning "[$Label] Operation failed; $($_.Exception.Message)"
                         }
-
-                        $Output = [PSCustomObject]@{
-                            Path           = $Repo
-                            Name           = $Name
-                            Origin         = $Remote
-                            Branch         = $Branch
-                            IsCurrent      = $Current
-                            PendingUpdates = $FileStatus
-                            OriginStatus   = ($Status | Select-String "your branch is").ToString()
-                            Message        = $Status | Out-String
-                        }
-                        $Results.Add(($Output | Select-Object $Select)) | Out-Null
-                    }
-
-                } # end for each repo
+                    } # end foreach repo
+                }
+                Else {
+                    $Msg = "No git repositories found in path"
+                    If (-not $Recurse.IsPresent) { $Msg += " (try -Recurse)" }
+                    Write-Warning "[$Label] $Msg"
+                }
             }
-            Catch {}
-
-        } #end foreach item in path
-
-        If ($Results) { 
-            switch ($StatusType) {
-                All {}
-                CurrentOnly {$Results =  ($Results | Where-Object {$_.IsCurrent -eq $True})}
-                StaleOnly {$Results =  ($Results | Where-Object {$_.IsCurrent -eq $False})}
+            Catch {
+                Write-Warning "[$P] Operation failed; $($_.Exception.Message)"
             }
-            Write-Output $Results
-        }
+        } #end foreach path
     }
     End {
-
-        Set-Location -Path $StartLocation
-        Write-Progress -Activity * -Completed
-        Write-Verbose "[END: $ScriptName]"
+        Write-Verbose "[END: $ScriptName] Script ran successfully"
     }
-} #end Get-PSGitStatus
+} #end Get-PKGitStatus

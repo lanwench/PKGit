@@ -6,11 +6,11 @@
 |**Name** |PKGit|
 |**Author** |Paula Kingsley|
 |**Type** |Script|
-|**Version** |1.5.0|
+|**Version** |1.6.0|
 |**Description**|Various functions / wrappers for git commands|
-|**Date**|README.md file generated on Tuesday, January 13, 2026 10:37:54 AM|
+|**Date**|README.md file generated on Saturday, June 6, 2026 2:28:37 PM|
 
-This module contains 15 PowerShell functions or commands
+This module contains 12 PowerShell functions or commands
 
 All functions should have reasonably detailed comment-based help, accessible via Get-Help ... e.g., 
   * `Get-Help Do-Something`
@@ -37,15 +37,15 @@ _Changelogs are generally found within individual functions, not per module._
 
 |**Command**|**Version**|**Synopsis**|
 |---|---|---|
-|**Get-PKGitCommit**|01.00.0000|Uses invoke-expression and "git log --name-status" (with additional parameters) to return commit history for one or more git repos|
-|**Get-PKGitEmail**|01.01.0000|Returns the git config email address on the local computer: global, local, or both|
-|**Get-PKGitInstall**|05.00.0000|Looks for git.exe on the local computer, in the system path or by folder|
-|**Get-PKGitRemoteOrigin**|03.00.0000|Uses invoke-expression and "git remote show origin" in a folder hierarchy to create a PSCustomObject|
-|**Get-PKGitStatus**|03.02.0000|Invokes git status on one or more git repos|
-|**Get-PKGitWorkingFiles**|02.00.000|Returns the git status and working files for one or more git repos|
-|**Invoke-PKGitPull**|02.01.0000|Uses invoke-expression and "git pull" with optional parameters in a folder hierarchy|
-|**New-PKGitReadmeFile**|-|Generates a github markdown README.md file from the comment-based help contained in the specified PowerShell module file|
-|**Remove-PKGitLastCommit**|01.01.0000|Uses invoke-expression and "git reset --soft HEAD^" to remove the last unmerged commit in one or more git repos|
-|**Search-PKGitRepo**|02.00.0000|Searches a directory for directories containing hidden .git files, with option for recurse / depth|
-|**Set-PKGitEmail**|03.00.0000|Sets or changes a git global or local repo email address|
-|**Test-PKGitRepo**|02.00.0000|Verifies that the current directory is managed by git|
+|<span style="white-space: nowrap">**Get-PKGitCommit**</span>|02.00|Get commit history from one or more git repositories with filtering, sorting, and formatting options|
+|<span style="white-space: nowrap">**Get-PKGitEmail**</span>|03.00|Returns the git config email address on the local computer: global, local, system, or all|
+|<span style="white-space: nowrap">**Get-PKGitInstall**</span>|07.00|Looks for copies of the git executable on the local computer, in the system path or by folder, returning a PSObject with details about the command and file|
+|<span style="white-space: nowrap">**Get-PKGitRemoteOrigin**</span>|04.00|Get remote origin details from one or more git repositories|
+|<span style="white-space: nowrap">**Get-PKGitStatus**</span>|04.00|Get the status of one or more git repositories, returning branch, origin, working tree state, and a count-based summary of uncommitted changes|
+|<span style="white-space: nowrap">**Get-PKGitUpstream**</span>|01.00|Check for pending updates from remote origin on one or more git repositories|
+|<span style="white-space: nowrap">**Invoke-PKGitPull**</span>|03.00|Pull changes from the remote origin in one or more git repositories with confirmation (basic git pull only; no fancy options)|
+|<span style="white-space: nowrap">**New-PKGitReadmeFile**</span>|06.01|Generates a github markdown README.md file from the comment-based help in a PowerShell module, including module & function details (and versions if found)|
+|<span style="white-space: nowrap">**Remove-PKGitEmail**</span>|01.00|Removes the git config user email address from global or local scope|
+|<span style="white-space: nowrap">**Remove-PKGitLastCommit**</span>|02.00|Remove the last local commit from one or more git repositories, forcing confirmation|
+|<span style="white-space: nowrap">**Set-PKGitEmail**</span>|04.00|Sets or changes the git config user email address in global or local scope|
+|<span style="white-space: nowrap">**Test-PKGitRepo**</span>|03.00|Find git repositories in a path, returning an array of repo paths (or empty if none found)|

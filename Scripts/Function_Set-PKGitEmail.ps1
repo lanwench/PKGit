@@ -1,204 +1,165 @@
-﻿#requires -Version 4
+#requires -Version 4
 Function Set-PKGitEmail {
 <#
 .SYNOPSIS
-    Sets or changes a git global or local repo email address
+    Sets or changes the git config user email address in global or local scope
 
 .DESCRIPTION
-    Sets or changes a git global or local repo email address
-    Verifies that git is installed/available in the path, and that the directory contains a git repo (if scope is local)
-    Accepts pipeline input (for local scope)
-    Supports ShouldProcess
-    Returns a PSObject
+    Sets or changes the git config user email address in global or local scope.
+    Verifies that git is installed/available in the path, and that the directory contains a git repo (if scope is local).
+    If the email address is already set to the requested value, no change is made.
+    Accepts pipeline input for the Path parameter (local scope only).
+    Supports ShouldProcess.
+    Returns a PSObject.
 
 .NOTES
-    Name    : Function_Set-PKGitEmail.ps1 
+    Name    : Function_Set-PKGitEmail.ps1
     Created : 2018-08-13
     Author  : Paula Kingsley
-    Version : 03.00.0000
+    Version : 04.00
     History :
 
-        ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
+        ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK **
 
-        v01.00.0000 - 2018-08-13 - Created script
-        v01.01.0000 - 2019-04-09 - Minor updates
-        v02.00.0000 - 2019-10-10 - Added pipeline input, overhauled, added inner functions, other updates
-        v03.00.0000 - 2021-05-24 - Simplified, removed custom console messages and Quiet parameter; fixed missing Activity variable,
+        v01.00 - 2018-08-13 - Created script
+        v01.01 - 2019-04-09 - Minor updates
+        v02.00 - 2019-10-10 - Added pipeline input, overhauled, added inner functions, other updates
+        v03.00 - 2021-05-24 - Simplified, removed custom console messages and Quiet parameter; fixed missing Activity variable
+        v03.01 - 2024-06-01 - Updated help, simplified versions, added more verbose messages, other minor tweaks
+        v04.00 - 2026-06-03 - Replaced -Global/-Local switches with mandatory -Scope parameter; cosmetic consistency pass
+
+.PARAMETER Scope
+    Target scope for git config email: Global or Local
+
+.PARAMETER Path
+    One or more absolute paths to git repos (required for Local scope; default is current directory)
+
+.PARAMETER EmailAddress
+    Email address to set
 
 .EXAMPLE
-    PS C:\> Set-PKGitEmail -Global -EmailAddress joe.bloggs@domain.local -Verbose
+    PS C:\> Set-PKGitEmail -Scope Global -EmailAddress jbloggs@domain.com -Verbose
 
-        VERBOSE: PSBoundParameters: 
-	
-        Key              Value                     
-        ---              -----                     
-        Global           True                      
-        EmailAddress     joe.bloggs@domain.local
-        Verbose          True                      
-        Local            False                     
-        Path                                       
-        Quiet            False                     
-        ParameterSetName Global                    
-        PipelineInput    False                     
-        ScriptName       Set-PKGitEmail            
-        ScriptVersion    2.0.0                     
+        VERBOSE: PSBoundParameters:
 
-        BEGIN: Set git global config user email address
+        Key           Value
+        ---           -----
+        Scope         Global
+        EmailAddress  jbloggs@domain.com
+        Verbose       True
+        Path
+        PipelineInput False
+        ScriptName    Set-PKGitEmail
+        ScriptVersion 4.0
 
-        [LAPTOP] Get current email address
-        [LAPTOP] No email address found
-        [LAPTOP] Set email address
-        [LAPTOP] Successfully configured email address
+        VERBOSE: [BEGIN: Set-PKGitEmail] Set git global config user email address
+        VERBOSE: Commands:
 
+        TestGitRepo : git rev-parse --is-inside-work-tree 2>&1
+        GetEmail    : git config --global --get user.email
+        SetEmail    : git config --global --add user.email <EmailAddress>
+
+        VERBOSE: [Mapple.local] Getting current global git email address
+        VERBOSE: [Mapple.local] Current email address is lanwench@users.noreply.github.com
+
+        Confirm
+        Are you sure you want to perform this action?
+        Performing the operation "Replace git global email address 'lanwench@users.noreply.github.com' with 'jbloggs@domain.com'" on target "Mapple.local".
+        [Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is "Y"): Y
+
+        VERBOSE: [Mapple.local] Successfully configured email address
 
         Scope          : Global
-        Target         : LAPTOP
+        Target         : Mapple.local
         IsChanged      : True
-        CurrentAddress : -
-        NewAddress     : joe.bloggs@domain.local
+        CurrentAddress : lanwench@users.noreply.github.com
+        NewAddress     : jbloggs@domain.com
         Messages       : Successfully configured email address
 
-
-        END  : Set git global config user email address
-
-.EXAMPLE
-    PS C:\> Set-PKGitEmail -Global -EmailAddress jbloggs@corp.net -Quiet
-
-        Scope          : Global
-        Target         : LAPTOP
-        IsChanged      : False
-        CurrentAddress : joe.bloggs@domain.local
-        NewAddress     : jbloggs@corp.net
-        Messages       : Operation cancelled by user
-
+        VERBOSE: [END: Set-PKGitEmail] Script ran successfully
 
 .EXAMPLE
-    PS C:\Repos\> Get-ChildItem -Depth 0 -Directory | Set-backupsEmail -EmailAddress jbloggs@users.noreply.github.com -Verbose
+    PS C:\Repos\> Get-ChildItem -Depth 0 -Directory | Set-PKGitEmail -Scope Local -EmailAddress jbloggs@users.noreply.github.com -Verbose
 
-        VERBOSE: PSBoundParameters: 
-	
-        Key              Value                            
-        ---              -----                            
-        EmailAddress     jbloggs@users.noreply.github.com
-        Verbose          True                             
-        Global           False                            
-        Local            True                            
-        Path                                              
-        Quiet            False                            
-        ParameterSetName Local                            
-        PipelineInput    True                             
-        ScriptName       Set-PKGitEmail                   
-        ScriptVersion    2.0.0                            
+        VERBOSE: PSBoundParameters:
 
-        BEGIN: Set git local config user email address
+        Key           Value
+        ---           -----
+        Scope         Local
+        EmailAddress  jbloggs@users.noreply.github.com
+        Verbose       True
+        Path
+        PipelineInput True
+        ScriptName    Set-PKGitEmail
+        ScriptVersion 4.0
 
-        [ad-dns] Get directory object
-        [C:\Repos\ad-dns] Verify git repo
-        [C:\Repos\ad-dns] Get current email address
-        [C:\Repos\ad-dns] Current email address is jbloggs@users.noreply.github.com
-        [C:\Repos\ad-dns] No change needed
+        VERBOSE: [BEGIN: Set-PKGitEmail] Set git local config user email address
+        VERBOSE: Commands:
+
+        TestGitRepo : git rev-parse --is-inside-work-tree 2>&1
+        GetEmail    : git config --local --get user.email
+        SetEmail    : git config --local --add user.email <EmailAddress>
+
+        VERBOSE: [C:\Repos\ad-dns] Verifying that path is valid and contains a git repository
+        VERBOSE: [C:\Repos\ad-dns] Getting current local git email address
+        VERBOSE: [C:\Repos\ad-dns] Current email address is jbloggs@users.noreply.github.com
+        VERBOSE: [C:\Repos\ad-dns] No change needed
 
         Scope          : Local
-        Target         : ad-dns
+        Target         : C:\Repos\ad-dns
         IsChanged      : False
         CurrentAddress : jbloggs@users.noreply.github.com
         NewAddress     : jbloggs@users.noreply.github.com
         Messages       : No change needed
 
-        [backups] Get directory object
-        [C:\Repos\backups] Verify git repo
-        [C:\Repos\backups] Get current email address
-        [C:\Repos\backups] No email address found
-        [C:\Repos\backups] Set email address
-        [C:\Repos\backups] Successfully configured email address
+        VERBOSE: [C:\Repos\backups] Verifying that path is valid and contains a git repository
+        VERBOSE: [C:\Repos\backups] Getting current local git email address
+        VERBOSE: [C:\Repos\backups] No email address found
+
+        Confirm
+        Are you sure you want to perform this action?
+        Performing the operation "Set git local email address to 'jbloggs@users.noreply.github.com' in C:\Repos\backups" on target "C:\Repos\backups".
+        [Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is "Y"): Y
+
+        VERBOSE: [C:\Repos\backups] Successfully configured email address
 
         Scope          : Local
-        Target         : backups
+        Target         : C:\Repos\backups
         IsChanged      : True
-        CurrentAddress : -
+        CurrentAddress : (none)
         NewAddress     : jbloggs@users.noreply.github.com
         Messages       : Successfully configured email address
 
-        [chef] Get directory object
-        [C:\Repos\chef] Verify git repo
-        [C:\Repos\chef] Get current email address
-        [C:\Repos\chef] Current email address is testymctesterson@domain.local
-        [C:\Repos\chef] Set email address
-        [C:\Repos\chef] Successfully configured email address
-
-        Scope          : Local
-        Target         : chef
-        IsChanged      : True
-        CurrentAddress : testymctesterson@domain.local
-        NewAddress     : jbloggs@users.noreply.github.com
-        Messages       : Successfully configured email address
-
-        [psmodules] Get directory object
-        [C:\Repos\psmodules] Verify git repo
-        [C:\Repos\psmodules] Get current email address
-        [C:\Repos\psmodules] No email address found
-        [C:\Repos\psmodules] Set email address
-        [C:\Repos\psmodules] Successfully configured email address
-
-        Scope          : Local
-        Target         : psmodules
-        IsChanged      : True
-        CurrentAddress : -
-        NewAddress     : jbloggs@users.noreply.github.com
-        Messages       : Successfully configured email address
-
-        [infra tools] Get directory object
-        [C:\Repos\infra tools] Verify git repo
-        [C:\Repos\infra tools] Get current email address
-        [C:\Repos\infra tools] No email address found
-        [C:\Repos\infra tools] Set email address
-        [C:\Repos\infra tools] Successfully configured email address
-
-        Scope          : Local
-        Target         : infra tools
-        IsChanged      : True
-        CurrentAddress : -
-        NewAddress     : jbloggs@users.noreply.github.com
-        Messages       : Successfully configured email address
-
-        END  : Set git local config user email address
+        VERBOSE: [END: Set-PKGitEmail] Script ran successfully
 
 #>
 
 [CmdletBinding(
-    DefaultParameterSetName = "Local",
     SupportsShouldProcess = $True,
     ConfirmImpact = "High"
 )]
 Param(
 
     [Parameter(
-        ParameterSetName = "Global",
-        HelpMessage = "Set git email address globally on computer"
+        Mandatory = $True,
+        HelpMessage = "Target scope for git config email: Global or Local"
     )]
-    [switch]$Global,
+    [ValidateSet("Global","Local")]
+    [string]$Scope,
 
     [Parameter(
-        ParameterSetName = "Local",
-        HelpMessage = "Set git email address at local repo level"
-    )]
-    [switch]$Local,
-
-    [Parameter(
-        ParameterSetName = "Local",
-        Position = 1,
+        Position = 0,
         ValueFromPipeline = $True,
         ValueFromPipelineByPropertyName = $True,
-        HelpMessage = "One or more absolute paths to git repos"
+        HelpMessage = "One or more absolute paths to git repos (required for Local scope)"
     )]
-    [ValidateNotNullOrEmpty()]
     [Alias("Name","FullName")]
     $Path,
 
     [Parameter(
         Mandatory = $True,
-        Position = 2,
-        HelpMessage="Email address for reporting"
+        Position = 1,
+        HelpMessage = "Email address to set"
     )]
     [ValidateNotNullOrEmpty()]
     [ValidateScript({$_ -as [mailaddress]})]
@@ -207,26 +168,23 @@ Param(
 )
 
 Begin {
-    
+
     # Current version (please keep up to date from comment block)
-    [version]$Version = "03.00.0000"
+    [version]$Version = "04.00"
 
     # How did we get here
     $ScriptName = $MyInvocation.MyCommand.Name
-    $Source = $PSCmdlet.ParameterSetName
     [switch]$PipelineInput = $MyInvocation.ExpectingInput
-    $Scope = $Source
-    
+
     # Display our parameters
     $CurrentParams = $PSBoundParameters
-    If (($Source -eq "Local") -and (-not $PipelineInput.IsPresent) -and (-not $CurrentParams.Path)) {
+    If (($Scope -eq "Local") -and (-not $PipelineInput.IsPresent) -and (-not $CurrentParams.Path)) {
         $CurrentParams.Path = $Path = $PWD
     }
-    $MyInvocation.MyCommand.Parameters.keys | Where {$CurrentParams.keys -notContains $_} | 
-        Where {Test-Path variable:$_}| Foreach {
+    $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} |
+        Where-Object {Test-Path variable:$_}| ForEach-Object {
             $CurrentParams.Add($_, (Get-Variable $_).value)
         }
-    $CurrentParams.Add("ParameterSetName",$Source)
     $CurrentParams.Add("PipelineInput",$PipelineInput)
     $CurrentParams.Add("ScriptName",$ScriptName)
     $CurrentParams.Add("ScriptVersion",$Version)
@@ -234,113 +192,137 @@ Begin {
 
     #region Prerequisites
 
-    If (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
-        $Msg = "git.exe not found in path"
-        $Host.UI.WriteErrorLine("ERROR: $Msg")
-        Break
+    If (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Throw "git not found in path!"
     }
 
     #endregion Prerequisites
 
     #region Functions
 
-    # Function to see if we're in a git repo
-    Function Test-Repo{
+    # Function to verify a path contains a git repo
+    Function _TestRepo {
         [CmdletBinding()]
-        Param($Path = $PWD)
-        $TestCmd = $Null                
-        $TestCmd = "git rev-parse --is-inside-work-tree 2>&1"
+        Param([string]$Path = $PWD)
+        $TestCmd = "git -C '$Path' rev-parse --is-inside-work-tree 2>&1"
         $ScriptBlock = [scriptblock]::Create($TestCmd)
-        $Location = Get-Location
-        If (-not ($Location -eq $Path)) {
-            Set-Location $Path
-        }
         [bool]((Invoke-Command -ScriptBlock $ScriptBlock -ErrorAction Stop -Verbose:$False) -eq $True)
-        If (-not ($Location -eq $Path)) {
-            Set-Location $Location
-        }
-    } #end Test-Repo
+    } #end _TestRepo
 
-    # Function to get the current mail address
-    Function Get-Email {
-        [Cmdletbinding()]
-        Param()
-        $GetEmailCmd = $Null                
-        $GetEmailCmd = "git config --$($Scope.ToLower()) --get user.email"
+    # Function to get the current email address
+    Function _GetEmail {
+        [CmdletBinding()]
+        Param([string]$ScopeLevel, [string]$Path)
+        if ($ScopeLevel -eq "local" -and $Path) {
+            $GetEmailCmd = "git -C '$Path' config --$ScopeLevel --get user.email"
+        } else {
+            $GetEmailCmd = "git config --$ScopeLevel --get user.email"
+        }
         $ScriptBlock = [scriptblock]::Create($GetEmailCmd)
         Invoke-Command -ScriptBlock $ScriptBlock
-    } # end Get-Email
+    } #end _GetEmail
 
-    # Function to set the email address & return a boolean
-    Function Set-Email {
-        [Cmdletbinding()]
-        Param()
-        $SetEmailCmd = $Null                
-        $SetEmailCmd = "git config --$($Scope.ToLower()) user.email $EmailAddress"
-        $ScriptBlock = [scriptblock]::Create($SetEmailCmd)
-        $Set = Invoke-Command -ScriptBlock $ScriptBlock
-        [bool]((Get-Email) -eq $EmailAddress)
-    } # end Get-Email
+    # Function to perform email change: compare, prompt, set, verify, return output
+    Function _PerformEmailChange {
+        [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
+        param($Target, $CurrentEmail, $ConfirmMsg, [string]$Path)
 
+        $Output = [PSCustomObject]@{
+            Scope          = $Scope
+            Target         = $Target
+            IsChanged      = $False
+            CurrentAddress = if ($CurrentEmail) { $CurrentEmail } else { "(none)" }
+            NewAddress     = $EmailAddress
+            Messages       = $Null
+        }
+
+        If ($CurrentEmail -eq $EmailAddress) {
+            $Msg = "No change needed"
+            Write-Verbose "[$Target] $Msg"
+            $Output.Messages = $Msg
+        }
+        Else {
+            $Msg = "Set email address"
+            Write-Verbose "[$Target] $Msg"
+
+            If ($PSCmdlet.ShouldProcess($Target, $ConfirmMsg)) {
+                Try {
+                    If ($Scope -eq "local" -and $Path) {
+                        $SetEmailCmd = "git -C '$Path' config --$($Scope.ToLower()) --add user.email $EmailAddress"
+                    } Else {
+                        $SetEmailCmd = "git config --$($Scope.ToLower()) --add user.email $EmailAddress"
+                    }
+                    $ScriptBlock = [scriptblock]::Create($SetEmailCmd)
+                    $Null = Invoke-Command -ScriptBlock $ScriptBlock
+                    $VerifyEmail = _GetEmail -ScopeLevel $Scope.ToLower() -Path $Path
+
+                    If ($VerifyEmail -eq $EmailAddress) {
+                        $Msg = "Successfully configured email address"
+                        Write-Verbose "[$Target] $Msg"
+                        $Output.IsChanged = $True
+                        $Output.Messages = $Msg
+                    }
+                    Else {
+                        $Msg = "Failed to set email address"
+                        Write-Warning "[$Target] $Msg"
+                        $Output.Messages = $Msg
+                    }
+                }
+                Catch {
+                    $Msg = "Failed to set email address"
+                    If ($ErrorDetails = $_.Exception.Message) { $Msg += " ($ErrorDetails)" }
+                    Write-Warning "[$Target] $Msg"
+                    $Output.Messages = $Msg
+                }
+            }
+            Else {
+                $Msg = "Operation cancelled by user"
+                Write-Verbose "[$Target] $Msg"
+                $Output.Messages = $Msg
+            }
+        }
+        return $Output
+    } #end _PerformEmailChange
 
     #endregion Functions
 
     #region Splats
-        $Activity = "Set git email address"
-        $Param_WP = @{}
-        $Param_WP = @{
-            Activity         = $Activity
-            CurrentOperation = $Null
-            Status           = "Working"
-            PercentComplete  = $Null
-        }
-
+    $Param_WP = @{
+        Activity         = "Set git email address"
+        CurrentOperation = $Null
+        Status           = "Working"
+        PercentComplete  = $Null
+    }
     #endregion Splats
 
-    #region Output object
-
-    $OutputTemplate = [pscustomobject]@{
-        Scope          = $Scope
-        Target         = "Error"
-        IsChanged      = $False
-        CurrentAddress = "Error"
-        NewAddress     = $EmailAddress
-        Messages       = "Error"
-    }
-    Switch ($Scope) {
-        Local  {$OutputTemplate.Target = $Path}
-        Global {$OutputTemplate.Target = $Env:ComputerName}
-    }
-    
-    #endregion Output object
-
     $Activity = "Set git $($Scope.ToLower()) config user email address"
-    $Msg = "[BEGIN: $Scriptname] $Activity" 
-    Write-Verbose $Msg
 
-    
+    $Commands = [PSCustomObject]@{
+        TestGitRepo = "git rev-parse --is-inside-work-tree 2>&1"
+        GetEmail    = "git config --$($Scope.ToLower()) --get user.email"
+        SetEmail    = "git config --$($Scope.ToLower()) --add user.email <EmailAddress>"
+    }
+
+    $Msg = "[BEGIN: $ScriptName] $Activity"
+    Write-Verbose $Msg
+    Write-Verbose "Commands: `n`t$($Commands | Format-List | out-string )"
 }
+
 Process {
-    
-    # Set the flag
+
     [switch]$Continue = $False
 
-
     Switch ($Scope) {
-    
         Local {
-
-            $CurrentLocation = Get-Location
+            # Process each path and set local email address
             $Total = $Path.Count
             $Current = 0
 
             Foreach ($P in $Path) {
-            
-                $Output = $OutputTemplate.PSObject.Copy()
-                $Output.Target = $P
                 [switch]$Continue = $False
+                $Output = $Null
 
-                $Msg = "Get directory object"
+                $Msg = "Verifying that path is valid and contains a git repository"
                 Write-Verbose "[$P] $Msg"
 
                 $Current ++
@@ -350,221 +332,98 @@ Process {
                 Write-Progress @Param_WP
 
                 Try {
-                    $Target = (Get-Item -Path $P -ErrorAction Stop | Where-Object {$_.PSIsContainer} -ErrorAction Stop).FullName
+                    If ($Null = Test-Path -Path $P -PathType Container -ErrorAction Stop) {
+                        $Target = $P
+                    }
                     $Continue = $True
-                    Set-Location $Target
                 }
                 Catch {
-                    $Msg = "Failed to find path"
+                    $Msg = "Invalid directory path!"
                     Write-Warning "[$P] $Msg"
-                    $Output.IsChanged = $False
-                    $Output.Messages = $Msg
+                    Continue
                 }
-                
+
                 If ($Continue.IsPresent) {
-                    
-                    # Reset flag
                     $Continue = $False
-                    
-                    $Msg = "Verify git repo"
+
+                    If (_TestRepo -Path $P -ErrorAction Stop) {
+                        $Continue = $True
+                    }
+                    Else {
+                        $Msg = "Path doesn't appear to contain a git repository!"
+                        Write-Warning "[$Target] $Msg"
+                        Continue
+                    }
+                }
+
+                If ($Continue.IsPresent) {
+                    $Msg = "Getting current local git email address"
                     Write-Verbose "[$Target] $Msg"
 
                     $Param_WP.CurrentOperation = $Msg
                     Write-Progress @Param_WP
 
-                    If ($IsRepo = Test-Repo -ErrorAction Stop) {
-                        $TargetStr = "in $Target"
-                        $Continue = $True
-                    }
-                    Else {
-                        $Msg = "Failed to find git repo"
-                        Write-Warning "[$Target] $Msg" 
-                        $Output.IsChanged = $False
-                        $Output.Messages = $Msg
-                    }
-                }
-                
-                If ($Continue.IsPresent) {
-                    
-                    # Reset flag
-                    $Continue = $False
-
-                    $Msg = "Get current email address"
-                    Write-Verbose "[$Target] $Msg" 
-
-                    $Param_WP.CurrentOperation = $Msg
-                    Write-Progress @Param_WP
-
-                    If ($CurrentEmail = Get-Email) {
-                        $Output.CurrentAddress = $CurrentEmail
+                    $CurrentEmail = _GetEmail -ScopeLevel "local" -Path $P
+                    If ($CurrentEmail) {
                         $Msg = "Current email address is $CurrentEmail"
-                        Write-Verbose "[$Target] $Msg"
-                        If ($CurrentEmail -eq $EmailAddress) {    
-                            $Msg = "No change needed"
-                            Write-Verbose "[$Target] $Msg"
-                            $Output.Ischanged = $False
-                            $Output.Messages = $Msg
-                        }
-                        Else {
-                            $Continue = $True
-                            $ConfirmMsg = "`n`n`tReplace git $($Scope.ToLower()) email address '$CurrentEmail' with '$EmailAddress'`n`t$TargetStr`n`n"
-                        }
+                        $ConfirmMsg = "Replace git local email address '$CurrentEmail' with '$EmailAddress' in $Target"
                     }
                     Else {
                         $Msg = "No email address found"
-                        Write-Verbose "[$Target] $Msg"
-                        $Output.CurrentAddress = "-"
-                        $Continue = $True
-                        $ConfirmMsg = "`n`n`tSet git $($Scope.ToLower()) email address to '$EmailAddress'`n`t$TargetStr`n`n"
+                        $ConfirmMsg = "Set git local email address to '$EmailAddress' in $Target"
                     }
-                }
-
-                If ($Continue.IsPresent) {
-                    
-                    $Msg = "Set email address"
                     Write-Verbose "[$Target] $Msg"
 
-                    $Param_WP.CurrentOperation = $Msg
+                    $Param_WP.CurrentOperation = "Set email address"
                     Write-Progress @Param_WP
 
-                    If ($PSCmdlet.ShouldProcess($ConfirmMsg,$P)) {
-                        
-                        Try {
-                            If (Set-Email) {
-                                $Msg = "Successfully configured email address"
-                                Write-Verbose "[$Target] $Msg"
-                                $Output.IsChanged = $True
-                                $Output.Messages = $Msg
-                            }
-                            Else {
-                                $Msg = "Failed to set email address"
-                                Write-Warning "[$Target] $Msg"
-                                $Output.IsChanged = $False
-                                $Output.Messages = $Msg
-                            }
-                        }
-                        Catch {
-                            $Msg = "Failed to set email address"
-                            If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                            Write-Warning "[$Target] $Msg"
-                            $Output.IsChanged = $False
-                            $Output.Messages = $Msg
-                        } 
-                    }
-                    Else {
-                        $Msg = "Operation cancelled by user"
-                        Write-Verbose "[$Target] $Msg" 
-                        $Output.IsChanged = $False
-                        $Output.Messages = $Msg                        
-                    }
+                    $Output = _PerformEmailChange -Target $Target -CurrentEmail $CurrentEmail -ConfirmMsg $ConfirmMsg -Path $P -Confirm:$ConfirmPreference
                 }
-                
-                Write-Output $Output    
-            
-            } # end for each path
-            
-            Set-Location $CurrentLocation
+
+                If ($Null -ne $Output) {
+                    Write-Output $Output
+                }
+
+            } # end foreach path
         } #end local
 
         Global {
-            
-            $Target = $Env:ComputerName
-
-            $Output = $OutputTemplate.PSObject.Copy()
-            $Output.Target = $Target
-            [switch]$Continue = $True
-
-            $Current ++
+            # Set global git email address for computer
+            $Target = [System.Net.Dns]::GetHostName()
             $Param_WP.PercentComplete = 100
             $Param_WP.Status = $Target
-               
-            If ($Continue.IsPresent) {
-                    
-                # Reset flag
-                $Continue = $False
 
-                $Msg = "Get current email address"
-                Write-Verbose "[$Target] $Msg"
+            $Msg = "Getting current global git email address"
+            Write-Verbose "[$Target] $Msg"
+            $Param_WP.CurrentOperation = $Msg
+            Write-Progress @Param_WP
 
-                $Param_WP.CurrentOperation = $Msg
-                Write-Progress @Param_WP
-
-                If ($CurrentEmail = Get-Email) {
-                    $Output.CurrentAddress = $CurrentEmail
-                    $Msg = "Current email address is $CurrentEmail"
-                    Write-Verbose "[$Target] $Msg"
-                    
-                    If ($CurrentEmail -eq $EmailAddress) {
-                        $Msg = "No change needed"
-                        Write-Verbose "[$Target] $Msg"
-                        $Output.Ischanged = $False
-                        $Output.Messages = $Msg
-                    }
-                    Else {
-                        $Continue = $True
-                        $ConfirmMsg = "`n`n`tReplace git $($Scope.ToLower()) email address '$CurrentEmail' with '$EmailAddress'`n`n"
-                    }
-                }
-                Else {
-                    $Output.CurrentAddress = "-"
-                    $Msg = "No email address found"
-                    Write-Verbose "[$Target] $Msg"
-                    $Continue = $True
-                    $ConfirmMsg = "`n`n`tSet git $($Scope.ToLower()) email address to '$EmailAddress'`n`n"
-                }
+            $CurrentEmail = _GetEmail -ScopeLevel "global"
+            If ($CurrentEmail) {
+                $Msg = "Current email address is $CurrentEmail"
+                $ConfirmMsg = "Replace git global email address '$CurrentEmail' with '$EmailAddress'"
             }
-
-            If ($Continue.IsPresent) {
-                    
-                $Msg = "Set email address"
-                Write-Verbose "[$Target] $Msg"
-
-                $Param_WP.CurrentOperation = $Msg
-                Write-Progress @Param_WP
-
-                If ($PSCmdlet.ShouldProcess($ConfirmMsg,$Env:ComputerName)) {
-                        
-                    Try {
-                        If (Set-Email) {
-                            $Msg = "Successfully configured email address"
-                            Write-Verbose "[$Target] $Msg"
-                            $Output.IsChanged = $True
-                            $Output.Messages = $Msg
-                        }
-                        Else {
-                            $Msg = "Failed to set email address"
-                            Write-Warning "[$Target] $Msg"
-                            $Output.IsChanged = $False
-                            $Output.Messages = $Msg
-                        }
-                    }
-                    Catch {
-                        $Msg = "Failed to set email address"
-                        If ($ErrorDetails = $_.Exception.Message) {$Msg += " ($ErrorDetails)"}
-                        Write-Warning "[$Target] $Msg"
-                        $Output.IsChanged = $False
-                        $Output.Messages = $Msg
-                    } 
-                }
-                Else {
-                    $Msg = "Operation cancelled by user"
-                    Write-Warning "[$Target] $Msg"
-                    $Output.IsChanged = $False
-                    $Output.Messages = $Msg                        
-                }
+            Else {
+                $Msg = "No email address found"
+                $ConfirmMsg = "Set git global email address to '$EmailAddress'"
             }
-                
-            Write-Output $Output   
-        
+            Write-Verbose "[$Target] $Msg"
+
+            $Param_WP.CurrentOperation = "Set email address"
+            Write-Progress @Param_WP
+
+            $Output = _PerformEmailChange -Target $Target -CurrentEmail $CurrentEmail -ConfirmMsg $ConfirmMsg -Confirm:$ConfirmPreference
+            Write-Output $Output
+
         } #end global
-   
     } #end switch
 
 } #end process
-End {
-    
-    Write-Progress -Activity $Activity -Completed
-    Write-Verbose "END  : $Activity"
 
+End {
+
+    Write-Progress -Activity * -Completed
+    Write-Verbose "[END: $ScriptName] Script ran successfully"
 }
-} #end Set-backupsEmail
+
+} #end Set-PKGitEmail

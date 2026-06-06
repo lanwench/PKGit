@@ -1,150 +1,161 @@
-﻿#requires -Version 3
+#requires -Version 4
 Function Get-PKGitRemoteOrigin {
 <#
-.SYNOPSIS 
-    Uses invoke-expression and "git remote show origin" in a folder hierarchy to create a PSCustomObject
+.SYNOPSIS
+    Get remote origin details from one or more git repositories
 
 .DESCRIPTION
-    Uses invoke-expression and "git remote show origin" in a folder hierarchy to create a PSCustomObject
-    Verifies git.exe is present and looks for hidden .git folder
-    Returns remote origin and branch details
-    Returns a PSObject
+    Retrieves remote origin information from one or more git repositories using `git remote show origin`
+    Created because git is unintuitive to all but the most seasoned git users and remembering the exact syntax is often a pain
+    Accepts pipeline input for file paths or direct path parameters, and can search for git repositories in subdirectories if -Recurse is specified
+    Returns a pscustomobject with spaces replaced by underscores in property names, and includes the path to the repository for context
+    By default, returns remote fetch/push URLs, branch tracking, and merge status for the repository
 
-.NOTES
-    Name    : Get-PKGitRemoteOrigin.ps1
-    Author  : Paula Kingsley
-    Version : 03.00.0000
-    History :
+    - Use -Recurse to search for all git repositories in subdirectories
+    - When auth fails, local .git/config provides the remote URLs only
+    - Returns a PSCustomObject for each repository with Fetch_URL, Push_URL, and branch tracking details
+
+    The function verifies that git is installed/available and that file paths contain valid git repositories
     
-        ** PLEASE KEEP $VERSION UPDATED IN PROCESS BLOCK **
+.NOTES
+    Name    : Function_Get-PKGitRemoteOrigin.ps1
+    Author  : Paula Kingsley
+    Version : 04.00
+    History :
+        ** PLEASE KEEP $VERSION UPDATED IN BEGIN BLOCK **
 
-        v1.0.0      - 2016-05-29 - Created script
-        v1.0.1      - 2016-05-29 - Moved to separate file, renamed from Get-PKGitRepoOrigin,
-                                   updated verbose output 
-        v1.1.0      - 2016-05-30 - Changed output to multidimensional array, added 
-                                   -OutputType parameter
-        v1.1.1      - 2016-06-06 - Added requires statement for parent module,
-                                   link to github repo
-        v1.1.2      - 2016-08-01 - Renamed with Function_ prefix
-        v02.00.0000 - 2019-06-06 - General improvements & standardization
-        v03.00.0000 - 2021-04-22 - Overhauled and standardized, added pipeline support
-        
+        v01.00 - 2016-05-29 - Created script
+        v02.00 - 2019-06-06 - General improvements & standardization
+        v03.00 - 2021-04-22 - Overhauled and standardized, added pipeline support
+        v04.00 - 2026-06-04 - Overhauled for consistency with others in module
+
 .LINK
     https://github.com/jbloggs/PKGit
 
+.PARAMETER Path
+    Absolute path to git repo (default is current location)
+
+.PARAMETER Recurse
+    Recurse subfolders in path
+
 .EXAMPLE
-    PS C:\Users\JBloggs\Repos> Get-PKGitRemoteOrigin -Recurse -Verbose
+    PS C:\repos\moduleX> Get-PKGitRemoteOrigin -Verbose
+    Returns remote origin details from the current directory with verbose output showing parameter details and search process.
 
-        VERBOSE: PSBoundParameters: 
-	
-        Key           Value                  
-        ---           -----                  
-        Recurse       True                   
-        Verbose       True                   
-        RepoPath      {C:\Users\JBloggs\Repos}
-        WhatIf        False                  
-        ScriptName    Get-PKGitRemoteOrigin  
-        ScriptVersion 3.0.0                  
-        PipelineInput False                  
+        VERBOSE: PSBoundParameters:
 
-        VERBOSE: [C:\Users\JBloggs\Repos] Get folder object
-        VERBOSE: [C:\Users\JBloggs\Repos] 4 Git repo(s) found
+        Key              Value
+        ---              -----
+        Verbose          True
+        Path             {C:\repos\moduleX}
+        Recurse          False
+        ComputerName     LAPTOP14
+        ScriptName       Get-PKGitRemoteOrigin
+        ScriptVersion    4.0
+        PipelineInput    False
 
-        VERBOSE: [C:\Users\JBloggs\Repos\Gists\0a1bbdf348eec659c4e5b3211c021d1e] Get remote origin
-        InputPath                              : C:\Users\JBloggs\Repos\Gists\0a1bbdf348eec659c4e5b3211c021d1e
-        Fetch URL                              : https://gist.ghe.domain.local/0a1bbdf348eec659c4e5b3211c021d1e.git
-        Push URL                               : https://gist.ghe.domain.local/0a1bbdf348eec659c4e5b3211c021d1e.git
-        HEAD branch                            : master
-        Remote branch                          : master tracked
-        Local branch configured for 'git pull' : master merges with remote master
-        Local ref configured for 'git push'    : master pushes to master (up to date)
+        VERBOSE: [BEGIN: Get-PKGitRemoteOrigin] Get remote origin
+        VERBOSE: Commands:
 
-        VERBOSE: [C:\Users\JBloggs\Repos\ITOps\Policies] Get remote origin
-        InputPath                              : C:\Users\JBloggs\Repos\ITOps\Policies
-        Fetch URL                              : https://gitlab.com/megacorp/ITOps/Policies.git
-        Push URL                               : https://gitlab.com/megacorp/ITOps/Policies.git
-        HEAD branch                            : master
-        Remote branch                          : master tracked
-        Local branch configured for 'git pull' : master merges with remote master
-        Local ref configured for 'git push'    : master pushes to master (up to date)
+        TestRepo  : git -C <path> rev-parse --is-inside-work-tree
+        GetOrigin : git -C <path> remote show origin
 
-        VERBOSE: [C:\Users\JBloggs\Repos\ITOps\PowerShell] Get remote origin
-        InputPath                              : C:\Users\JBloggs\Repos\ITOps\PowerShell
-        Fetch URL                              : https://ghe.domain.local/itops/PowerShell.git
-        Push URL                               : https://ghe.domain.local/itops/PowerShell.git
-        HEAD branch                            : master
-        Remote branches                        : master tracked
-        Local branch configured for 'git pull' : master merges with remote master
-        Local ref configured for 'git push'    : master pushes to master (up to date)
+        VERBOSE: [C:\repos\moduleX] Searching for git repo
+        VERBOSE: [C:\repos\moduleX] 1 git repo(s) found
+        VERBOSE: [C:\repos\moduleX] Get remote origin
 
-        VERBOSE: [C:\Users\JBloggs\Repos\Personal\Sandbox] Get remote origin
-        InputPath                              : C:\Users\JBloggs\Repos\Personal\Sandbox
-        Fetch URL                              : https://github.com/jbloggs/Sandbox.git
-        Push URL                               : https://github.com/jbloggs/Sandbox.git
-        HEAD branch                            : master
-        Remote branch                          : master tracked
-        Local branch configured for 'git pull' : master merges with remote master
-        Local ref configured for 'git push'    : master pushes to master (fast-forwardable)
+        Path                                 : C:\repos\moduleX
+        Fetch_URL                            : https://github.com/jbloggs/moduleX.git
+        Push_URL                             : https://github.com/jbloggs/moduleX.git
+        HEAD_branch                          : main
+        Remote_branch                        : main tracked
+        Local_branch_configured_for_git_pull : main merges with remote main
+        Local_ref_configured_for_git_push    : main pushes to main (up to date)
 
+        VERBOSE: [END: Get-PKGitRemoteOrigin] Script ran successfully
+
+.EXAMPLE
+    PS C:\repos> Get-PKGitRemoteOrigin -Path c:\demos\ -Recurse -Verbose
+    Returns remote origin details from all git repositories in the named directory and subdirectories.
+
+.EXAMPLE
+    PS /repos/modulex Get-PKGitRemoteOrigin
+    Returns basic remote origin information when no access is granted
+
+        WARNING: [c:\demos\example  ] Authorization failed; falling back to local .git/config (minimum information only)                    
+                                                                                                                                
+        Path                                 : /repos/moduleX                                                   
+        Fetch_URL                            : https://github.com/jbloggs/moduleX.git                                             
+        Push_URL                             : https://github.com/jbloggs/moduleX.git                                             
+        HEAD_branch                          : ERROR                                                                            
+        Remote_branch                        : ERROR                                                                            
+        Local_branch_configured_for_git_pull : ERROR                                                                            
+        Local_ref_configured_for_git_push    : ERROR   
 
 #>
-[CmdletBinding(
-    SupportsShouldProcess = $True,
-    ConfirmImpact = "High"
-)]
+[CmdletBinding()]
 Param(
     [Parameter(
-        HelpMessage = "Folder or path",
+        Position = 0,
         ValueFromPipeline = $True,
-        ValueFromPipelineByPropertyName = $True
+        ValueFromPipelineByPropertyName = $True,
+        HelpMessage = "Absolute path to git repositories; default is current location"
     )]
     [Alias("FullName")]
-    [object[]]$RepoPath = (Get-Location).Path,
+    [object[]]$Path = (Get-Location).Path,
 
     [Parameter(
-        Mandatory = $False,
-        HelpMessage = "Recurse through subfolders to find git repos in a hierarchy"
+        HelpMessage = "Search subfolders for git repositories"
     )]
-    [Switch] $Recurse
+    [Switch]$Recurse
 
 )
 Begin {
-    
+
     # Current version (please keep up to date from comment block)
-    [version]$Version = "03.00.0000"
+    [version]$Version = "04.00"
 
     # How did we get here?
-    [switch]$PipelineInput = $MyInvocation.ExpectingInput
-    $CurrentParams = $PSBoundParameters
     $ScriptName = $MyInvocation.MyCommand.Name
-    $MyInvocation.MyCommand.Parameters.keys | Where {$CurrentParams.keys -notContains $_} | 
-        Where {Test-Path Variable:$_}| Foreach {
+    [switch]$PipelineInput = $MyInvocation.ExpectingInput
+
+    $CurrentParams = $PSBoundParameters
+    $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} |
+        Where-Object {Test-Path Variable:$_} | ForEach-Object {
             $CurrentParams.Add($_, (Get-Variable $_).value)
         }
+    $ComputerName = [System.Net.Dns]::GetHostName()
+    $CurrentParams.Add("ComputerName",$ComputerName)
     $CurrentParams.Add("ScriptName",$ScriptName)
     $CurrentParams.Add("ScriptVersion",$Version)
     $CurrentParams.Add("PipelineInput",$PipelineInput)
     Write-Verbose "PSBoundParameters: `n`t$($CurrentParams | Format-Table -AutoSize | out-string )"
 
-    If (-not ($GitCmd = Get-Command git.exe -ErrorAction SilentlyContinue)) {
-        $Msg = "Git.exe not found on '$Env:ComputerName'; please install from https://git-scm.com/download/win"
-        Write-Error $Msg
-        Break
+    #region Prerequisites
+
+    If (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Throw "git not found in path!"
     }
 
-    If ($Recurse.IsPresent) {
-        $Activity = "Recursively search directories for git repos and invoke a 'git remote show origin' in folder if a git repo is found"
-    }
-    Else {
-        $Activity = "Invoke a 'git remote show origin' in folder if a git repo is found"
+    #endregion Prerequisites
+
+    # Build activity description
+    $Activity = "Get remote origin"
+    If ($Recurse.IsPresent) { $Activity += " for all repos found in subfolders" }
+
+    $Commands = [PSCustomObject]@{
+        TestRepo  = 'git -C <path> rev-parse --is-inside-work-tree'
+        GetOrigin = 'git -C <path> remote show origin'
     }
 
-    $StartingLocation = Get-Location
+    Write-Verbose "[BEGIN: $ScriptName] $Activity"
+    Write-Verbose "Commands: `n`t$($Commands | Format-List | out-string )"
 
 }
-Process {    
-    
-    Foreach ($Item in $RepoPath) {
+
+Process {
+
+    Foreach ($Item in $Path) {
 
         $Current = $Null
         If (-not ($Item -is [System.IO.FileSystemInfo])) {
@@ -154,12 +165,13 @@ Process {
             If ($Item -is [System.Management.Automation.PathInfo]) {
                 $Current = $Item.Path
             }
-            $Msg = "Get folder object"
+            $Msg = "Searching for git repo"
+            If ($Recurse.IsPresent) {$Msg = "Searching tree for git repos"}
             Write-Verbose "[$Current] $Msg"
             Write-Progress -Activity $Activity -CurrentOperation $Msg -Status $Current
-            $FolderObj = Get-Item -Path $Item -Verbose:$False 
+            $FolderObj = Get-Item -Path $Item -Verbose:$False
         }
-        Elseif ($Item -is [System.IO.FileSystemInfo]) {
+        ElseIf ($Item -is [System.IO.FileSystemInfo]) {
             $Current = $Item.FullName
             $FolderObj = $Item
         }
@@ -169,74 +181,114 @@ Process {
         }
 
         If ($FolderObj) {
-        
-            $Msg = "Look for git repo"
-            If ($Recurse.IsPresent) {$Msg += " (search subfolders recursively)"}
-            $Status = $Msg
-            Write-Progress -Activity $Activity -CurrentOperation $FolderObj.FullName -Status $Status
-            If ($GitRepos = $FolderObj | Get-Childitem -Recurse:$Recurse -Filter .git -Directory -Attributes H -ErrorAction Stop) {
-            
-                $Msg = "$($GitRepos.Count) Git repo(s) found"
-                Write-Verbose "[$($Folder.FullName)] $Msg"
 
-                Foreach ($GitFolder in $GitRepos) {
-                    
-                    $GitFolder = ($GitFolder.FullName | Split-Path -Parent)
-                    Set-Location -Path $GitFolder
+            [object[]]$GitRepos = Test-PKGitRepo -Path $FolderObj.FullName -Recurse:$Recurse.IsPresent -Verbose:$False
+
+            If ($GitRepos) {
+                $TotalRepos = $GitRepos.Count
+                $CurrentRepo = 0
+                $Msg = "$TotalRepos git repo(s) found"
+                Write-Verbose "[$Current] $Msg"
+
+                Foreach ($GitFolder in ($GitRepos | Sort-Object | Select-Object -Unique)) {
+                    $CurrentRepo ++
                     $Msg = "Get remote origin"
-                    $Status = $Msg
-                    Write-Verbose "[$($GitFolder)] $Msg"
-                    Write-Progress -Activity $Activity -CurrentOperation $Gitfolder -Status $Status
+                    Write-Verbose "[$GitFolder] $Msg"
+                    Write-Progress -Activity $Activity -CurrentOperation $GitFolder -Status Working -PercentComplete ($CurrentRepo/$TotalRepos*100)
 
                     Try {
-                        $Remote = ((Invoke-Expression "git remote show origin 2>&1") | Select-Object -Skip 1).Trim()
-                        
-                        If ($Remote -notmatch "fatal") {
-                            $HashTable = [ordered]@{}
-                            $Hashtable.Add("InputPath",$GitFolder)
-                            for ($i = 0; $i -lt $Remote.count; $i++) {
-                                $Line = $remote[$i].trim().replace("  "," ")
-                                if ($Line -match ":") {
-                                    $Split = $Line -split ":", 2
-                                    If ($Split[1]) {
-                                        $Hashtable.add($Split[0], $Split[1].Trim())
-                                    }
-                                    else {
-                                        $data = @()
-                                        while ( $remote[$i+1] -notmatch ":" -AND $i -lt $remote.count-1) {
-                                            $i++
-                                            $Data = $remote[$i].trim()
+                        $RemoteOutput = @(git -C "$GitFolder" remote show origin 2>&1)
+                        $GitExitCode = $LASTEXITCODE
+                        $RemoteOutput = $RemoteOutput | ForEach-Object {$_.ToString()}
+
+                        # Check for error indicators in output
+                        $HasErrorLine = $RemoteOutput | Where-Object {$_ -match "^(fatal|error|failed)"}
+
+                        If ($GitExitCode -ne 0 -or $HasErrorLine) {
+                            If ($GitExitCode -match "^-?128$" -or $HasErrorLine -imatch "failed|fail||error|fatal|permission|denied|could not read|authentication|access") {
+                                Write-Warning "[$GitFolder] Authorization failed; falling back to local .git/config (minimum information only)"
+                                # Try to read local config as fallback
+                                $ConfigPath = "$GitFolder/.git/config"
+                                If (Test-Path $ConfigPath) {
+                                    $ConfigLines = Get-Content $ConfigPath
+                                    $InOriginSection = $False
+                                    $FetchUrl = $Null
+                                    ForEach ($Line in $ConfigLines) {
+                                        If ($Line -match '\[remote "origin"\]') {$InOriginSection = $True}
+                                        ElseIf ($Line -match '^\[') {$InOriginSection = $False}
+                                        If ($InOriginSection -and $Line -match '^\s*url\s*=\s*(.+)') {
+                                            $FetchUrl = $Matches[1].Trim()
                                         }
-                                        $Hashtable.add($split[0],$data)
+                                    }
+                                    If ($FetchUrl) {
+                                        [PSCustomObject]@{
+                                            'Path' = $GitFolder
+                                            'Fetch_URL' = $FetchUrl
+                                            'Push_URL' = $FetchUrl
+                                            'HEAD_branch' = "ERROR"
+                                            'Remote_branch' = "ERROR"
+                                            'Local_branch_configured_for_git_pull' = "ERROR"
+                                            'Local_ref_configured_for_git_push' = "ERROR"
+                                        }
                                     }
                                 }
+                            } Else {
+                                Write-Warning "[$GitFolder] Operation failed (unknown error)"
                             }
-                            New-Object psobject -Property $HashTable
                         }
-                        Else {
-                            Write-Warning "[$($GitFolder)] $($Remote.ToString())"
+                        ElseIf ($RemoteOutput.Count -gt 0 -and ($RemoteOutput -match "remote origin")) {
+                                $Remote = $RemoteOutput | Select-Object -Skip 1
+                                $HashTable = [ordered]@{}
+                                $Hashtable.Add("Path",$GitFolder)
+                                for ($i = 0; $i -lt $Remote.count; $i++) {
+                                    $Line = $remote[$i].trim().replace("  "," ")
+                                    if ($Line -match ":") {
+                                        $Split = $Line -split ":", 2
+                                        $PropName = $Split[0].replace(" ", "_")
+                                        If ($Split[1]) {
+                                            $Hashtable.add($PropName, $Split[1].Trim())
+                                        }
+                                        else {
+                                            $data = @()
+                                            while ( $remote[$i+1] -notmatch ":" -AND $i -lt $remote.count-1) {
+                                                $i++
+                                                $Data = $remote[$i].trim()
+                                            }
+                                            $Hashtable.add($PropName,$data)
+                                        }
+                                    }
+                                }
+                                New-Object psobject -Property $HashTable
+                            }
                         }
+                    Catch {
+                        $Msg = "Operation failed"
+                        If ($_.Exception.Message -match "fatal|error") {
+                            $Msg = "Authentication or connection failed"
+                        } ElseIf ($ErrorDetails = $_.Exception.Message) {
+                            $Msg += "; $ErrorDetails"
+                        }
+                        Write-Warning "[$GitFolder] $Msg"
                     }
-                    Catch {}
 
-                } # end foreach folder
+                } # end foreach repo
+
             }
-
+            Else {
+                $Msg = "No git repo found"
+                If (-not $Recurse.IsPresent) {$Msg += " (try -Recurse)"}
+                Write-Warning "[$Current] $Msg"
+            }
+        }
         Else {
-            $Msg = "No Git repo(s) found"
-            Write-Warning "[$($GitFolder)] $Msg"
-        }    
-    }
-        Else {
-            $Msg = "No folder obect(s) found"
+            $Msg = "Invalid directory path"
             Write-Warning "[$Item] $Msg"
         }
-    } #end foreach input
+    } #end foreach path
 }
 End {
-    Set-Location $StartingLocation
     Write-Progress -Activity * -Completed
+    Write-Verbose "[END: $ScriptName] Script ran successfully"
 }
 } #end Get-PKGitRemoteOrigin
-
 
