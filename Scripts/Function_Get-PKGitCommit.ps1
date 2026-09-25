@@ -5,30 +5,33 @@ Function Get-PKGitCommit {
     Get commit history from one or more git repositories with filtering, sorting, and formatting options
 
 .DESCRIPTION
-    Retrieves commit history from one or more git repositories using git log, with support for filtering, sorting, and formatting options
-    Created because git syntax is frankly unintuitive to all but the most seasoned git users
-    Accepts pipeline input for file paths or direct path parameters, and can search for git repositories in subdirectories if -Recurse is specified
-    Requires git to be installed and available in the system path
+    Retrieves commit history from one or more git repositories using git log, with support for filtering, sorting, and formatting options.
+    Created because git syntax is frankly unintuitive to all but the most seasoned git users!
+    Accepts pipeline input for file paths or direct path parameters, and can search for git repositories in subdirectories if -Recurse is specified.
+    Requires git to be installed and available in the system path, of course
 
-    By default, returns the latest commit from the specified repository or current directory. The behavior can be customized using the following options:
+    For output: by default, returns the latest commit from the specified repository or current directory.
+    The behavior can be customized using the following options:
 
     - Use -NumCommits to return multiple commits (or 0 for all commits)
     - Use -Ascending to sort by oldest-first instead of the default newest-first
     - Use -NotBefore and/or -NotAfter to filter commits by date range
     - Use -ExpandFiles to format file changes as newline-separated strings for readability
-    - Use -BasicOutput to exclude detailed information (hash, author, file count)
+    - Use -Full to include detailed information (hash, author, file count)
 
-    The function verifies that directories contain valid git repositories before processing
+    The function verifies that directories contain valid git repositories before processing.
 
 .NOTES
     Name    : Function_Get-PKGitCommit.ps1
+    Created : 2022-08-31
     Author  : Paula Kingsley
-    Version : 02.00
+    Version : 02.01
     History :
         ** PLEASE KEEP $VERSION UPDATED IN BEGIN BLOCK **
 
         v01.00 - 2022-08-31 - Created script
         v02.00 - 2026-06-03 - Overhauled for consistency with others in module, additional features added
+        v02.01 - 2026-09-17 - Cosmetic and consistency updates
 
 .LINK
     https://github.com/lanwench/PKGit
@@ -51,15 +54,15 @@ Function Get-PKGitCommit {
 .PARAMETER NotAfter
     Return only commits made before this date (optional)
 
-.PARAMETER ExpandFiles
-    Format Files property as newline-separated strings instead of collection
+.PARAMETER Full
+    Include hash, author info, file change count, and file listing in output 
 
-.PARAMETER BasicOutput
-    Exclude hash, author info, and file change count from output
+.PARAMETER ExpandFiles
+    In Full output, display the Files property as newline-separated strings for readability, instead of collection 
 
 .EXAMPLE
     PS C:\repos\moduleX> Get-PKGitCommit -Verbose
-    Returns the latest commit from the current directory with verbose output showing parameter details and search process.
+    Returns the latest commit from the current directory with basic output showing parameter details and search process.
 
         VERBOSE: PSBoundParameters:
 
@@ -72,9 +75,9 @@ Function Get-PKGitCommit {
         Ascending        False
         NotBefore
         NotAfter
-        BasicOutput      False
+        Full             False
         ScriptName       Get-PKGitCommit
-        ScriptVersion    2.0
+        ScriptVersion    2.01
         PipelineInput    False
 
         VERBOSE: [BEGIN: Get-PKGitCommit] Get commit
@@ -84,61 +87,72 @@ Function Get-PKGitCommit {
         VERBOSE: [C:\repos\moduleX] 1 matching hash(es) found
         VERBOSE: [C:\repos\moduleX] 129eb184061c3094efd53b6b2af4aac3fcb42123
 
-        Path           : C:\repos\moduleX
-        Date           : 2022-09-19T13:52:26-07:00
-        Message        : v01.02.0000
-        Hash           : 129eb184061c3094efd53b6b2af4aac3fcb42123
-        Author         : Jane Bloggs (jbloggs@users.noreply.github.com)
-        Committer      : Jane Bloggs (jbloggs@users.noreply.github.com)
-        NumFileChanges : 3
-        Files          : {M	moduleX.psd1, M	moduleX.psm1, M	README.md}
+        Path       : C:\repos\moduleX
+        Date       : 2022-09-19T13:52:26-07:00
+        Message    : v01.02.0000
+        Committer  : Jane Bloggs (jbloggs@users.noreply.github.com)
 
         VERBOSE: [END: Get-PKGitCommit] Script ran successfully
 
 .EXAMPLE
-    PS /Users/paula/git/GitHub/PKAD> Get-PKGitCommit -NumCommits 3 -Ascending -BasicOutput -ExpandFiles
-    Returns the 3 oldest commits in ascending order (oldest first) with minimal properties and files listed on separate lines for readability.
+    PS /Users/paula/git/GitHub/PKAD> Get-PKGitCommit -NumCommits 3 -Ascending -Full -ExpandFiles
+    Returns the 3 oldest commits in ascending order (oldest first) with full properties and files listed on separate lines for readability.
 
-        Path      : /Users/jane/repoman                                                                             
-        Date      : 2022-06-27T14:18:35-07:00                                                                                
-        Message   : Initial commit                                                                                           
-        Committer : GitHub (noreply@github.com)                                                                              
-        Files     : A        LICENSE                                                                                         
-                    A        README.md                                                                                       
-                                                                                                                                
-        Path      : /Users/jane/repoman                                                                             
-        Date      : 2022-07-27T16:50:17-07:00                                                                                
-        Message   : v01.00.0000                                                                                              
-        Committer : Jane Bloggs (jb@noneyabusiness.com)                                                       
-        Files     : A        samplemodulemanifest.psd1                                                                                       
-                    M        README.md                                                                                       
-                    A        sushi_demo.ps1                                                       
-                    A        littletree.ps1  
-                    A        test/testing123.ps1                                                                             
-                                                                                                                                
-        Path      : /Users/jane/repoman                                                                           
-        Date      : 2022-07-27T16:53:14-07:00                                                                                
-        Message   : deleted test file                                                                                             
-        Committer : Jane Bloggs (jb@noneyabusiness.com)                                                          
-        Files     : M README.md                                                                                       
-                    D test/testing123.ps1     
+        ComputerName   : PKAD
+        Path           : /Users/jane/repoman
+        Date           : 2022-06-27T14:18:35-07:00
+        Message        : Initial commit
+        Hash           : a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+        Author         : GitHub (noreply@github.com)
+        Committer      : GitHub (noreply@github.com)
+        NumFileChanges : 2
+        Files          : A        LICENSE
+                         A        README.md
+
+        ComputerName   : PKAD
+        Path           : /Users/jane/repoman
+        Date           : 2022-07-27T16:50:17-07:00
+        Message        : v01.00.0000
+        Hash           : b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7
+        Author         : Jane Bloggs (jb@noneyabusiness.com)
+        Committer      : Jane Bloggs (jb@noneyabusiness.com)
+        NumFileChanges : 5
+        Files          : A        samplemodulemanifest.psd1
+                         M        README.md
+                         A        sushi_demo.ps1
+                         A        littletree.ps1
+                         A        test/testing123.ps1
+
+        ComputerName   : PKAD
+        Path           : /Users/jane/repoman
+        Date           : 2022-07-27T16:53:14-07:00
+        Message        : deleted test file
+        Hash           : c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8
+        Author         : Jane Bloggs (jb@noneyabusiness.com)
+        Committer      : Jane Bloggs (jb@noneyabusiness.com)
+        NumFileChanges : 2
+        Files          : M README.md
+                         D test/testing123.ps1     
 
 .EXAMPLE
-    PS C:\> Get-PKGitCommit -Path D:\sandbox -NotAfter 2018-01-01 -ExpandFiles -BasicOutput
-    Returns the latest commit from any git repos in D:\sandbox made before January 1, 2018, with files listed as newline-separated strings and fewer properties returned
+    PS C:\> Get-PKGitCommit -Path D:\sandbox -NotAfter 2018-01-01 -Full -ExpandFiles
+    Returns the latest commit from any git repos in D:\sandbox made before January 1, 2018, with full properties and files listed as newline-separated strings
 
-        Path      : D:\sandbox
-        Date      : 2017-12-01T09:58:35-08:00
-        Message   : v1.6.0
-        Committer : Jane Bloggs (jbloggs@users.noreply.github.com)
-        Files     : M Files/originalnotes.txt
-                    A Scripts/Show-ObjectDemo.ps1
-                    D Scripts/Untitled4.ps1
-                    D Scripts/kittens.ps1
-
+        ComputerName   : WORKSTATION
+        Path           : D:\sandbox
+        Date           : 2017-12-01T09:58:35-08:00
+        Message        : v1.6.0
+        Hash           : d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9
+        Author         : Jane Bloggs (jbloggs@users.noreply.github.com)
+        Committer      : Jane Bloggs (jbloggs@users.noreply.github.com)
+        NumFileChanges : 4
+        Files          : M Files/originalnotes.txt
+                         A Scripts/Show-ObjectDemo.ps1
+                         D Scripts/Untitled4.ps1
+                         D Scripts/kittens.ps1
 
 #>
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = "Basic")]
 Param(
     [Parameter(
         Position = 0,
@@ -157,6 +171,7 @@ Param(
     [Parameter(
         HelpMessage = "Number of commits to return (default is 1; set to 0 for all)"
     )]
+    [ValidateRange(0, [int]::MaxValue)]
     [int]$NumCommits = 1,
 
     [Parameter(
@@ -175,27 +190,31 @@ Param(
     [datetime]$NotAfter,
 
     [Parameter(
-        HelpMessage = "Format Files property as newline-separated strings instead of collection"
+        ParameterSetName = "Full",
+        HelpMessage = "Include hash, author info, file change count, and file listing in output"
     )]
-    [switch]$ExpandFiles,
-
-    [Parameter(
-        HelpMessage = "Exclude hash, author info, and file change count from output"
-    )]
-    [switch]$BasicOutput
+    [switch]$Full,
     
+    [Parameter(
+        ParameterSetName = "Full",
+        HelpMessage = "In Full output, display the Files property as newline-separated strings for readability, instead of collection"
+    )]
+    [switch]$ExpandFiles
 
 )
 Begin {    
     
     # Current version (please keep up to date from comment block)
-    [version]$Version = "02.00"
+    [version]$Version = "02.01"
+
+    # Start the clock
+    $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     # How did we get here
     $ScriptName = $MyInvocation.MyCommand.Name
+    $Source = $PSCmdlet.ParameterSetName
     [switch]$PipelineInput = $MyInvocation.ExpectingInput
-
-    $CurrentParams = $PSBoundParameters
+    $CurrentParams = @{} + $PSBoundParameters
     $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} |
         Where-Object {Test-Path Variable:$_}| Foreach-Object {
             $CurrentParams.Add($_, (Get-Variable $_).value)
@@ -203,6 +222,7 @@ Begin {
     $ComputerName = [System.Net.Dns]::GetHostName()
     $CurrentParams.Add("ComputerName",$ComputerName)
     $CurrentParams.Add("ScriptName",$ScriptName)
+    $CurrentParams.Add("ParameterSetName",$Source)
     $CurrentParams.Add("ScriptVersion",$Version)
     $CurrentParams.Add("PipelineInput",$PipelineInput)
     Write-Verbose "PSBoundParameters: `n`t$($CurrentParams | Format-Table -AutoSize | out-string )"
@@ -221,17 +241,13 @@ Begin {
     }
     # Build activity description
     $Direction = If ($Ascending.IsPresent) { "oldest" } Else { "latest" }
-    If ($NumCommits -eq 0) {
-        $Activity = "Return $Direction commits (all)"
-    } ElseIf ($NumCommits -eq 1) {
-        $Activity = "Return $Direction commit"
-    } Else {
-        $Activity = "Return $NumCommits $Direction commits"
-    }
+    If ($NumCommits -eq 0) {$Activity = "Return $Direction commits (all)"} 
+    ElseIf ($NumCommits -eq 1) {$Activity = "Return $Direction commit"} 
+    Else {$Activity = "Return $NumCommits $Direction commits"}
     If ($Recurse.IsPresent) { $Activity += " for all repos found in subfolders" }
     If ($NotBefore -or $NotAfter) { $Activity += " in date range" }
     If ($ExpandFiles.IsPresent) { $Activity += " with expanded file listing" }
-    If ($BasicOutput.IsPresent) { $Activity += ", returning a subset of properties only" }
+    If ($Full.IsPresent) { $Activity += " with full details" }
 
     $Commands = [PSCustomObject]@{
         TestRepo        = 'git -C <path> rev-parse --is-inside-work-tree'
@@ -254,9 +270,7 @@ Process {
         Try {
             $Results = @()
             $CurrentPath ++
-        
-            If ($Item -is [string] -or $Item -is [System.IO.FileSystemInfo]) {$Label = $Item}
-            ElseIf ($Item -is [System.Management.Automation.PathInfo]) {$Label = $Item.FullName}
+            $Label = $Item.ToString()
         
             $Msg = "Searching for git repos"
             If ($Recurse.IsPresent) {$Msg = "Searching tree for git repos"}
@@ -270,16 +284,17 @@ Process {
                 $CurrentRepo = 0
                 $Msg = "$TotalRepos git repo(s) found"
                 Write-Verbose "[$Label] $Msg"
-                Foreach ($GitFolder in ($GitRepos | Sort-Object | Select-Object -Unique)) {
+                
+                Foreach ($RepoPath in ($GitRepos | Sort-Object | Select-Object -Unique)) {
                     $CurrentRepo ++
-                    $Label = $GitFolder
+                    $Label = $RepoPath
 
                     $Msg = "Looking for matching commit(s)"
                     Write-Verbose "[$Label] $Msg"
-                    Write-Progress -Id 2 -Activity $Msg -CurrentOperation $GitFolder -Status Working -PercentComplete ($CurrentRepo/$TotalRepos*100)
+                    Write-Progress -Id 2 -Activity $Msg -CurrentOperation $RepoPath -Status Working -PercentComplete ($CurrentRepo/$TotalRepos*100)
 
                     # Build git command
-                    $GitCmd = "git -C `"$GitFolder`" log --format='%H'"
+                    $GitCmd = "git -C `"$RepoPath`" log --format='%H'"
                     If ($Ascending.IsPresent) { $GitCmd += " --reverse" }
                     If ($NotBefore) { $GitCmd += " --since `"$((Get-Date $NotBefore -f 'MMM d yyyy').ToUpper())`"" }
                     If ($NotAfter)  { $GitCmd += " --until `"$((Get-Date $NotAfter  -f 'MMM d yyyy').ToUpper())`"" }
@@ -304,32 +319,43 @@ Process {
                             Write-Verbose "[$Label] $Hash"
                             Write-Progress -Id 3 -Activity $Msg -CurrentOperation $Hash -Status Working -PercentComplete ($CurrentHash/$TotalHashes*100)
 
-
                             # Get the commit data
-                            $Commit = git -C $GitFolder log -1 $Hash --format="%cI`t%s`t%H`t%an (%ae)`t%cn (%ce)" 2>&1
+                            $Commit = git -C $RepoPath log -1 $Hash --format="%cI`t%s`t%H`t%an (%ae)`t%cn (%ce)" 2>&1
 
                             # Get the changed files only
-                            [object[]]$Files = git -C $GitFolder log -1 $Hash --pretty=format:'%h-%f' --name-status  2>&1
+                            [object[]]$Files = git -C $RepoPath log -1 $Hash --pretty=format:'%h-%f' --name-status  2>&1
                             [object[]]$Files = $Files | Select-Object -Skip 1
 
                             # Create a psobject with the commit data & number of files
                             $Output = $Commit | ConvertFrom-Csv -Delimiter "`t" -Header ("Date","Message","Hash","Author","Committer") | 
-                                Select-Object -Property @{N="Path";E={$GitFolder}},*,@{N="NumFileChanges";E={$Files.Count}}
+                                Select-Object -Property @{N="ComputerName";E={$ComputerName}},@{N="Path";E={$RepoPath}},*,@{N="NumFileChanges";E={$Files.Count}}
         
                             If ($ExpandFiles.IsPresent) {
                                 $Output | Add-Member -MemberType NoteProperty -Name Files -Value ($Files -join("`n"))
-                            } Else {
+                            } 
+                            Else {
                                 $Output | Add-Member -MemberType NoteProperty -Name Files -Value $Files
                             }
 
                             $Results += $Output
 
                         } # end foreach commit
-                    
+
                     } # end if hashes/commits
                     Else {
                         $Msg = "No matching commits found"
                         Write-Warning "[$Label] $Msg"
+                        $Results += [PSCustomObject]@{
+                            ComputerName   = $ComputerName
+                            Path           = $RepoPath
+                            Date           = $Null
+                            Message        = "(no matching commits)"
+                            Hash           = $Null
+                            Author         = $Null
+                            Committer      = $Null
+                            NumFileChanges = 0
+                            Files          = @()
+                        }
                     }
 
                 } # end for each repo folder
@@ -346,18 +372,18 @@ Process {
             Write-Warning "[$Item] $Msg"
         }
 
-        If ($BasicOutput.IsPresent) {
-            Write-Output ($Results | Select-Object -Property * -ExcludeProperty Hash,Author,NumFileChanges)
+        If ($Full.IsPresent) {
+            Write-Output $Results
         }
         Else {
-            Write-Output $Results
+            Write-Output ($Results | Select-Object -Property * -ExcludeProperty Hash,Author,NumFileChanges,Files)
         }
 
     } #end foreach path 
 }
 End {
-
     Write-Progress -Activity * -Completed
-    Write-Verbose "[END: $ScriptName] Script ran successfully"
+    $Stopwatch.Stop()
+    Write-Verbose "[END: $ScriptName] Script completed in $(("{0:hh'h 'mm'm 'ss's'}" -f $Stopwatch.Elapsed))"
 }
 } #end Get-PKGitCommit

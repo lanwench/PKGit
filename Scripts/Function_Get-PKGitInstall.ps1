@@ -9,9 +9,8 @@ Function Get-PKGitInstall {
     - Default (system path): Searches the system PATH environment variable using Get-Command
     - Folder search: Recursively searches one or more specified directories (or OS-specific defaults)
 
-    For each match found, runs 'git --version' to retrieve the actual git version string.
-
-    Returns a PSCustomObject for each match with the following properties:
+    For each match found, runs 'git --version' to retrieve the actual git version string and
+    returns a PSCustomObject for each match with the following properties:
     - ComputerName: Local computer name
     - Name: Executable filename (typically 'git')
     - Path: Full path to the git executable
@@ -26,7 +25,7 @@ Function Get-PKGitInstall {
     Name    : Function_Get-PKGitInstall.ps1
     Created : 2016-05-29
     Author  : Paula Kingsley
-    Version : 07.00
+    Version : 07.01
     History :
 
         ** PLEASE KEEP $VERSION UPDATED IN BEGIN BLOCK **
@@ -38,6 +37,7 @@ Function Get-PKGitInstall {
         v05.00 - 2022-09-19 - Overhauled, simplified, standardized
         v06.00 - 2024-06-01 - Overhaul to simplify and standardize, change versioning format
         v07.00 - 2026-06-03 - Total overhaul, returns item type, platform-aware defaults, includes git --version
+        v07.01 - 2026-09-17 - Cosmetic and consistency updates
 
 .LINK
     https://github.com/lanwench/PKGit
@@ -51,52 +51,38 @@ Function Get-PKGitInstall {
     - macOS/Linux: /usr/local/bin, /opt/homebrew/bin, /usr/bin, /opt
 
 .EXAMPLE
-    PS C:\> Get-PKGitInstall -Verbose
-    VERBOSE: PSBoundParameters:
+    PS /Users/jbloggs/git/GitHub/python> Get-PKGitInstall -Verbose
+        VERBOSE: PSBoundParameters: 
 
-    Key              Value
-    ---              -----
-    Verbose          True
-    Path
-    Search           False
-    ComputerName     LAPTOP14
-    ParameterSetName SystemPath
-    ScriptName       Get-PKGitInstall
-    ScriptVersion    7.0
+        Name          Value
+        ----          -----
+        ScriptName    Get-PKGitInstall
+        PipelineInput False
+        ScriptVersion 7.1
+        Search        False
+        Path          
+        Verbose       True
+        Source        SystemPath
+        ComputerName  pokey.local
 
-    VERBOSE: [BEGIN: Get-PKGitInstall] Search for git in system path
-    VERBOSE: [LAPTOP14] Searching for git in system paths
-    VERBOSE: [LAPTOP14] 1 match(es) found
+        VERBOSE: [BEGIN: Get-PKGitInstall] Search for git in system path
+        VERBOSE: [pokey.local] Searching for git in system paths
+        VERBOSE: [pokey.local] 1 match(es) found
 
-    ComputerName : LAPTOP14
-    Name         : git
-    Path         : C:\Program Files\Git\cmd\git
-    Type         : Unknown/Error
-    Version      : git version 2.37.3.windows.1
-    CommandType  : Application
-    FileDate     : 2022-09-14
+        ComputerName : pokey.local
+        Name         : git
+        Path         : /opt/homebrew/bin/git
+        Type         : SymbolicLink
+        Version      : git version 2.55.0
+        CommandType  : Application
+        FileDate     : 2026-07-06
 
-    VERBOSE: [END: Get-PKGitInstall] Script ran successfully
+        VERBOSE: [END: Get-PKGitInstall] Script completed in 00h 00m 00s
 
 .EXAMPLE
     PS /Users/jbloggs> Get-PKGitInstall -Search -Path /usr/local/bin -Verbose
-    VERBOSE: PSBoundParameters:
-
-    Key              Value
-    ---              -----
-    Verbose          True
-    Path             /usr/local/bin
-    Search           True
-    ComputerName     Mapple.local
-    ParameterSetName Search
-    ScriptName       Get-PKGitInstall
-    ScriptVersion    7.0
-
-    VERBOSE: [BEGIN: Get-PKGitInstall] Search for git in specific folders
-    VERBOSE: [Mapple.local] Searching folders for git
-    VERBOSE: [Mapple.local] 1 match(es) found
-
-    ComputerName : Mapple.local
+    
+    ComputerName : pokey.local
     Name         : git
     Path         : /usr/local/bin/git
     Type         : SymbolicLink
@@ -104,11 +90,7 @@ Function Get-PKGitInstall {
     CommandType  : Application
     FileDate     : 2024-02-29
 
-    VERBOSE: [END: Get-PKGitInstall] Script ran successfully
-
-
 #>
-
 [CmdletBinding(DefaultParameterSetName = "SystemPath")]
 Param(
     [Parameter(
@@ -121,51 +103,47 @@ Param(
         ParameterSetName = "Search",
         HelpMessage = "One or more specific paths to search (if not specified, defaults to user's home directory and other common locations)"
     )]
+    [ValidateScript({Test-Path $_ -PathType Container})]
     [Alias("FilePath")]
     [string[]]$Path
 )
-
 Begin {
 
-    # Version from comment block
-    [version]$Version = "07.00"
+    # Current version (please keep up to date from comment block)
+    [version]$Version = "07.01"
 
-    # Set OS-specific default paths if not provided
-    
+    # Start the clock
+    $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
-    # Show our settings
-    $Source = $PSCmdlet.ParameterSetName
+    # How did we get here?
+    [switch]$PipelineInput = $MyInvocation.ExpectingInput
     $ScriptName = $MyInvocation.MyCommand.Name
-    $CurrentParams = $PSBoundParameters
+    $Source = $PSCmdlet.ParameterSetName
+    $CurrentParams = @{} + $PSBoundParameters
     If ($Source -eq "SystemPath") {$CurrentParams.Path = $Null}
     Elseif ($Source -eq "Search" -and -not $Path) {
         If ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {$Path = @("$Env:ProgramFiles","${env:ProgramFiles(x86)}","$Env:AllUsersProfile")}
         Else {$Path = @("/usr/local/bin","/opt/homebrew/bin","/usr/bin","/opt")}
     }
-    $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} |
-        Where-Object {Test-Path variable:$_} | ForEach-Object {
-            $CurrentParams.Add($_, (Get-Variable $_).value)
-        }
+    $MyInvocation.MyCommand.Parameters.keys | Where-Object { $CurrentParams.keys -notContains $_ } |
+    Where-Object { Test-Path Variable:$_ } | ForEach-Object {$CurrentParams.Add($_, (Get-Variable $_).value)}
     $ComputerName = [System.Net.Dns]::GetHostName()
-    $CurrentParams.Add("ComputerName",$ComputerName)
-    $CurrentParams.Add("ParameterSetName",$Source)
-    $CurrentParams.Add("ScriptName",$ScriptName)
-    $CurrentParams.Add("ScriptVersion",$Version)
+    $CurrentParams.Add("ComputerName", $ComputerName)
+    $CurrentParams.Add("ScriptName", $ScriptName)
+    $CurrentParams.Add("ScriptVersion", $Version)
+    $CurrentParams.Add("PipelineInput", $PipelineInput)
+    $CurrentParams.Add("Source", $Source)
     Write-Verbose "PSBoundParameters: `n`t$($CurrentParams | Format-Table -AutoSize | out-string )"
 
-    #region Functions
+    #region Inner functions
 
     # Get the command or the file object
     Function _GetDetails {
         Switch ($Source) {
             Search {
                 $Command = Get-Command -Name $Item.FullName -CommandType Application -ErrorAction SilentlyContinue
-                Try {
-                    $GitVersion = & $Item.FullName --version 2>$Null
-                }
-                Catch {
-                    $GitVersion = $Null
-                }
+                Try {$GitVersion = & $Item.FullName --version 2>$Null}
+                Catch {$GitVersion = $Null}
                 $FileType = If ($Item.UnixStat.ItemType) { $Item.UnixStat.ItemType } Else { "Unknown/Error" }
                 [PSCustomObject]@{
                     ComputerName = $ComputerName
@@ -179,12 +157,8 @@ Begin {
             }
             SystemPath {
                 $File = Get-Item $Item.Path -ErrorAction SilentlyContinue
-                Try {
-                    $GitVersion = & $Item.Path --version 2>$Null
-                }
-                Catch {
-                    $GitVersion = $Null
-                }
+                Try {$GitVersion = & $Item.Path --version 2>$Null}
+                Catch {$GitVersion = $Null}
                 $FileType = If ($File.UnixStat.ItemType) { $File.UnixStat.ItemType } Else { "Unknown/Error" }
                 [PSCustomObject]@{
                     ComputerName = $ComputerName
@@ -199,20 +173,14 @@ Begin {
         }
     } #end _GetDetails
 
-    #endregion Functions
+    #endregion Inner functions
 
     $Activity = "Search for git"
     If ($Search.IsPresent) {
-        If ($CurrentParams.ContainsKey('Path')) {
-            $Activity += " in specific folders"
-        }
-        Else {
-            $Activity += " in default folders"
-        }
+        If ($CurrentParams.ContainsKey('Path')) {$Activity += " in specific folders"}
+        Else {$Activity += " in default folders"}
     }
-    Else {
-        $Activity += " in system path"
-    }
+    Else {$Activity += " in system path"}
 
     $Msg = "[BEGIN: $ScriptName] $Activity"
     Write-Verbose $Msg
@@ -274,10 +242,9 @@ Process {
 }
 End {
     Write-Progress -Activity * -Completed
-    Write-Verbose "[END: $ScriptName] Script ran successfully"
+    $Stopwatch.Stop()
+    Write-Verbose "[END: $ScriptName] Script completed in $(("{0:hh'h 'mm'm 'ss's'}" -f $Stopwatch.Elapsed))"
 
 }
 } #end Get-PKGitInstall
 
-
-$Null = New-Alias Test-PKGitInstall -Value Get-PKGitInstall -Confirm:$False -Force -EA SilentlyContinue -Description "Backwards compatibility after rename"

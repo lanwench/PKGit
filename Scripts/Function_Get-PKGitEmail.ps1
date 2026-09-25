@@ -5,8 +5,8 @@ Function Get-PKGitEmail {
     Returns the git config email address on the local computer: global, local, system, or all
 
 .DESCRIPTION
-    Queries git configuration for user email addresses across Global, Local, and/or System scopes.
-    Returns objects with email address, scope, target (computer name or repo path), and any relevant messages.
+    Queries git configuration for user email addresses across Global, Local, and/or System scopes and
+    returns objects with email address, scope, target (computer name or repo path), and any relevant messages
 
     Scope behavior:
     - Global: System-wide user email (~/.gitconfig), applies to all repos on computer
@@ -14,24 +14,24 @@ Function Get-PKGitEmail {
     - System: Machine-wide email (/etc/gitconfig), rarely set except on shared servers
     - All: Returns global, local, and system settings (default)
 
-    Accepts pipeline input for the Path parameter. When called with pipeline input, Global and System
+    Accepts pipeline input for the Path parameter; when called with pipeline input, Global and System
     results are returned once upfront (if requested via -Scope All or -Scope Global/-System), then Local
-    results are returned for each path in the pipeline.
-    Returns PSCustomObject with ComputerName, Scope, Path, Email, and Messages properties.
+    results are returned for each path in the pipeline, returning PSCustomObject with ComputerName, Scope, Path, Email, and Messages properties
 
 .NOTES
-    Name    : Function_Get-PKGitEmail.ps1 
+    Name    : Function_Get-PKGitEmail.ps1
     Created : 2019-04-09
     Author  : Paula Kingsley
-    Version : 03.00
+    Version : 03.01
     History :
 
-        ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK ** 
+        ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK **
 
         v01.00 - 2019-04-09 - Created script
         v01.01 - 2021-05-24 - Simplified, removed -Quiet, fixed set-location
         v02.00 - 2026-03-15 - Cleanup, made cross-platform compatible, added better error handling
         v03.00 - 2026-06-03 - Overhauled, simplified, made consistent with other functions in module
+        v03.01 - 2026-09-17 - Cosmetic and consistency updates
 
 .PARAMETER Path
     Path to git repository (default is current directory)
@@ -51,7 +51,7 @@ Function Get-PKGitEmail {
         Scope         All
         PipelineInput False
         ScriptName    Get-PKGitEmail
-        ScriptVersion 2.1
+        ScriptVersion 3.01
 
 
         VERBOSE: [BEGIN: Get-PKGitEmail] Get global and local git config user email addresses on laptop2.local
@@ -85,14 +85,14 @@ Function Get-PKGitEmail {
 
         VERBOSE: PSBoundParameters: 
 	
-        Key           Value         
-        ---           -----         
-        Scope         All           
-        Verbose       True          
-        Path                        
-        PipelineInput True          
+        Key           Value
+        ---           -----
+        Scope         All
+        Verbose       True
+        Path
+        PipelineInput True
         ScriptName    Get-PKGitEmail
-        ScriptVersion 1.1.0         
+        ScriptVersion 3.01         
 
         WARNING: [LAPTOP] Pipeline input detected; scope will be reset to 'Local'
 
@@ -149,17 +149,18 @@ Param(
 )
 
 Begin {
-    
+
     # Current version (please keep up to date from comment block)
-    [version]$Version = "03.00"
+    [version]$Version = "03.01"
+    
+    # Start the clock
+    $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     # How did we get here
     $ScriptName = $MyInvocation.MyCommand.Name
     [switch]$PipelineInput = $MyInvocation.ExpectingInput
-    
-    # Display our parameters
-    $CurrentParams = $PSBoundParameters
-    $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} | 
+    $CurrentParams = @{} + $PSBoundParameters
+    $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} |
         Where-Object {Test-Path variable:$_}| ForEach-Object {
             $CurrentParams.Add($_, (Get-Variable $_).value)
         }
@@ -178,7 +179,7 @@ Begin {
     }
     #endregion Prerequisites
 
-    #region Functions
+    #region Helper functions
     Function _IsGitRepo($Path) {
         $Cmd = "git -C '$Path' rev-parse --is-inside-work-tree 2>&1"
         $ScriptBlock = [scriptblock]::Create($Cmd)
@@ -193,19 +194,18 @@ Begin {
             }
         }
     } # end _IsGitRepo
-
     Function _GetEmail {
         param([switch]$Global, [switch]$System, [switch]$Local, [string]$Path)
         if ($Global.IsPresent) {
             $Cmd = "git config --global --get user.email"
             $ScriptBlock = [scriptblock]::Create($Cmd)
             $Results = Invoke-Command -ScriptBlock $ScriptBlock
-            $Msg = if (-not $Results) { "No global git email found" } else { $Null }
+            $Msg = If (-not $Results) { "No email address defined for git global scope" } Else { $Null }
             [PSCustomObject]@{
                 ComputerName = $ComputerName
                 Scope        = "Global"
                 Path         = "n/a"
-                Email        = if ($Results) { $Results } else { "(none)" }
+                Email        = If ($Results) { $Results } 
                 Messages     = $Msg
             }
         }
@@ -214,12 +214,12 @@ Begin {
             $Cmd = "git config --system --get user.email"
             $ScriptBlock = [scriptblock]::Create($Cmd)
             $Results = Invoke-Command -ScriptBlock $ScriptBlock
-            $Msg = if (-not $Results) { "No system git email found" } else { $Null }
+            $Msg = If (-not $Results) { "No email address defined for git system scope" } Else { $Null }
             [PSCustomObject]@{
                 ComputerName = $ComputerName
                 Scope        = "System"
                 Path         = "n/a"
-                Email        = if ($Results) { $Results } else { "(none)" }
+                Email        = If ($Results) { $Results } 
                 Messages     = $Msg
             }
         }
@@ -228,37 +228,30 @@ Begin {
             $Cmd = "git -C '$Path' config --local --get user.email"
             $ScriptBlock = [scriptblock]::Create($Cmd)
             $Results = Invoke-Command -ScriptBlock $ScriptBlock
-            $Msg = if (-not $Results) { "No local git email found" } else { $Null }
+            $Msg = If (-not $Results) { "No email address defined for git local scope" } Else { $Null }
             [PSCustomObject]@{
                 ComputerName = $ComputerName
                 Scope        = "Local"
                 Path         = $Path
-                Email        = if ($Results) { $Results } else { "(none)" }
+                Email        = If ($Results) { $Results } 
                 Messages     = $Msg
             }
         }
     } #end _GetEmail
 
-    #endregion Functions
+    #endregion Helper functions
     
     #region Define actions
-
     [switch]$GetLocal = [switch]$GetGlobal = [switch]$GetSystem = $False
     Switch ($Scope) {
         All {
             [switch]$GetLocal = [switch]$GetGlobal = [switch]$GetSystem = $True
             $Activity = "Get global, local, and system git config user email addresses"
         }
-        Local  {
-            [switch]$GetLocal = $True
-            $Activity = "Get $($Scope.ToLower()) git config user email address"
-        }
-        Global {
-            [switch]$GetGlobal = $True
-            $Activity = "Get $($Scope.ToLower()) git config user email address"
-        }
-        System {
-            [switch]$GetSystem = $True
+        Default {
+            If ($Scope -eq "Local") { [switch]$GetLocal = $True }
+            If ($Scope -eq "Global") { [switch]$GetGlobal = $True }
+            If ($Scope -eq "System") { [switch]$GetSystem = $True }
             $Activity = "Get $($Scope.ToLower()) git config user email address"
         }
     }
@@ -334,13 +327,10 @@ Process {
             Write-Warning "[$Path] $Msg"
         }
     }
-
 } #end process
 End {
-
-    $Msg = "[END: $Scriptname] Operation completed successfully"
-    Write-Verbose $Msg
+    $Stopwatch.Stop()
+    Write-Verbose "[END: $ScriptName] Operation completed in $(("{0:hh'h 'mm'm 'ss's'}" -f $Stopwatch.Elapsed))"
 }
-
-} #end Get-PKGitEmail
+} # end Get-PKGitEmail
 

@@ -6,7 +6,7 @@ Function Get-PKGitRemoteOrigin {
 
 .DESCRIPTION
     Retrieves remote origin information from one or more git repositories using `git remote show origin`
-    Created because git is unintuitive to all but the most seasoned git users and remembering the exact syntax is often a pain
+    Created because git is unintuitive to all but the most seasoned git users and remembering the exact syntax is often a pain!
     Accepts pipeline input for file paths or direct path parameters, and can search for git repositories in subdirectories if -Recurse is specified
     Returns a pscustomobject with spaces replaced by underscores in property names, and includes the path to the repository for context
     By default, returns remote fetch/push URLs, branch tracking, and merge status for the repository
@@ -19,8 +19,9 @@ Function Get-PKGitRemoteOrigin {
     
 .NOTES
     Name    : Function_Get-PKGitRemoteOrigin.ps1
+    Created : 2016-05-29
     Author  : Paula Kingsley
-    Version : 04.00
+    Version : 04.01
     History :
         ** PLEASE KEEP $VERSION UPDATED IN BEGIN BLOCK **
 
@@ -28,9 +29,10 @@ Function Get-PKGitRemoteOrigin {
         v02.00 - 2019-06-06 - General improvements & standardization
         v03.00 - 2021-04-22 - Overhauled and standardized, added pipeline support
         v04.00 - 2026-06-04 - Overhauled for consistency with others in module
+        v04.01 - 2026-09-17 - Cosmetic and consistency updates
 
 .LINK
-    https://github.com/jbloggs/PKGit
+    https://github.com/lanwench/PKGit
 
 .PARAMETER Path
     Absolute path to git repo (default is current location)
@@ -51,7 +53,7 @@ Function Get-PKGitRemoteOrigin {
         Recurse          False
         ComputerName     LAPTOP14
         ScriptName       Get-PKGitRemoteOrigin
-        ScriptVersion    4.0
+        ScriptVersion    4.01
         PipelineInput    False
 
         VERBOSE: [BEGIN: Get-PKGitRemoteOrigin] Get remote origin
@@ -79,17 +81,17 @@ Function Get-PKGitRemoteOrigin {
     Returns remote origin details from all git repositories in the named directory and subdirectories.
 
 .EXAMPLE
-    PS /repos/modulex Get-PKGitRemoteOrigin
+    PS /repos/moduleX> Get-PKGitRemoteOrigin
     Returns basic remote origin information when no access is granted
 
-        WARNING: [c:\demos\example  ] Authorization failed; falling back to local .git/config (minimum information only)                    
-                                                                                                                                
-        Path                                 : /repos/moduleX                                                   
-        Fetch_URL                            : https://github.com/jbloggs/moduleX.git                                             
-        Push_URL                             : https://github.com/jbloggs/moduleX.git                                             
-        HEAD_branch                          : ERROR                                                                            
-        Remote_branch                        : ERROR                                                                            
-        Local_branch_configured_for_git_pull : ERROR                                                                            
+        WARNING: [/repos/moduleX] Authorization failed; falling back to local .git/config (minimum information only)
+
+        Path                                 : /repos/moduleX
+        Fetch_URL                            : https://github.com/jbloggs/moduleX.git
+        Push_URL                             : https://github.com/jbloggs/moduleX.git
+        HEAD_branch                          : ERROR
+        Remote_branch                        : ERROR
+        Local_branch_configured_for_git_pull : ERROR
         Local_ref_configured_for_git_push    : ERROR   
 
 #>
@@ -113,13 +115,15 @@ Param(
 Begin {
 
     # Current version (please keep up to date from comment block)
-    [version]$Version = "04.00"
+    [version]$Version = "04.01"
+
+    # Start the clock
+    $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     # How did we get here?
     $ScriptName = $MyInvocation.MyCommand.Name
     [switch]$PipelineInput = $MyInvocation.ExpectingInput
-
-    $CurrentParams = $PSBoundParameters
+    $CurrentParams = @{} + $PSBoundParameters
     $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} |
         Where-Object {Test-Path Variable:$_} | ForEach-Object {
             $CurrentParams.Add($_, (Get-Variable $_).value)
@@ -150,9 +154,7 @@ Begin {
 
     Write-Verbose "[BEGIN: $ScriptName] $Activity"
     Write-Verbose "Commands: `n`t$($Commands | Format-List | out-string )"
-
 }
-
 Process {
 
     Foreach ($Item in $Path) {
@@ -190,14 +192,14 @@ Process {
                 $Msg = "$TotalRepos git repo(s) found"
                 Write-Verbose "[$Current] $Msg"
 
-                Foreach ($GitFolder in ($GitRepos | Sort-Object | Select-Object -Unique)) {
+                Foreach ($RepoPath in ($GitRepos | Sort-Object | Select-Object -Unique)) {
                     $CurrentRepo ++
                     $Msg = "Get remote origin"
-                    Write-Verbose "[$GitFolder] $Msg"
-                    Write-Progress -Activity $Activity -CurrentOperation $GitFolder -Status Working -PercentComplete ($CurrentRepo/$TotalRepos*100)
+                    Write-Verbose "[$RepoPath] $Msg"
+                    Write-Progress -Activity $Activity -CurrentOperation $RepoPath -Status Working -PercentComplete ($CurrentRepo/$TotalRepos*100)
 
                     Try {
-                        $RemoteOutput = @(git -C "$GitFolder" remote show origin 2>&1)
+                        $RemoteOutput = @(git -C "$RepoPath" remote show origin 2>&1)
                         $GitExitCode = $LASTEXITCODE
                         $RemoteOutput = $RemoteOutput | ForEach-Object {$_.ToString()}
 
@@ -206,9 +208,9 @@ Process {
 
                         If ($GitExitCode -ne 0 -or $HasErrorLine) {
                             If ($GitExitCode -match "^-?128$" -or $HasErrorLine -imatch "failed|fail||error|fatal|permission|denied|could not read|authentication|access") {
-                                Write-Warning "[$GitFolder] Authorization failed; falling back to local .git/config (minimum information only)"
+                                Write-Warning "[$RepoPath] Authorization failed; falling back to local .git/config (minimum information only)"
                                 # Try to read local config as fallback
-                                $ConfigPath = "$GitFolder/.git/config"
+                                $ConfigPath = "$RepoPath/.git/config"
                                 If (Test-Path $ConfigPath) {
                                     $ConfigLines = Get-Content $ConfigPath
                                     $InOriginSection = $False
@@ -222,7 +224,7 @@ Process {
                                     }
                                     If ($FetchUrl) {
                                         [PSCustomObject]@{
-                                            'Path' = $GitFolder
+                                            'Path' = $RepoPath
                                             'Fetch_URL' = $FetchUrl
                                             'Push_URL' = $FetchUrl
                                             'HEAD_branch' = "ERROR"
@@ -233,13 +235,13 @@ Process {
                                     }
                                 }
                             } Else {
-                                Write-Warning "[$GitFolder] Operation failed (unknown error)"
+                                Write-Warning "[$RepoPath] Operation failed (unknown error)"
                             }
                         }
                         ElseIf ($RemoteOutput.Count -gt 0 -and ($RemoteOutput -match "remote origin")) {
                                 $Remote = $RemoteOutput | Select-Object -Skip 1
                                 $HashTable = [ordered]@{}
-                                $Hashtable.Add("Path",$GitFolder)
+                                $Hashtable.Add("Path",$RepoPath)
                                 for ($i = 0; $i -lt $Remote.count; $i++) {
                                     $Line = $remote[$i].trim().replace("  "," ")
                                     if ($Line -match ":") {
@@ -268,7 +270,7 @@ Process {
                         } ElseIf ($ErrorDetails = $_.Exception.Message) {
                             $Msg += "; $ErrorDetails"
                         }
-                        Write-Warning "[$GitFolder] $Msg"
+                        Write-Warning "[$RepoPath] $Msg"
                     }
 
                 } # end foreach repo
@@ -288,7 +290,8 @@ Process {
 }
 End {
     Write-Progress -Activity * -Completed
-    Write-Verbose "[END: $ScriptName] Script ran successfully"
+    $Stopwatch.Stop()
+    Write-Verbose "[END: $ScriptName] Script completed in $(("{0:hh'h 'mm'm 'ss's'}" -f $Stopwatch.Elapsed))"
 }
 } #end Get-PKGitRemoteOrigin
 

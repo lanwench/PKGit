@@ -15,12 +15,13 @@ Function Remove-PKGitEmail {
     Name    : Function_Remove-PKGitEmail.ps1
     Created : 2026-06-03
     Author  : Paula Kingsley
-    Version : 01.00
+    Version : 01.01
     History :
 
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK **
 
         v01.00 - 2026-06-03 - Created script
+        v01.01 - 2026-09-17 - Cosmetic and consistency updates
 
 .PARAMETER Path
     Path to git repository (default is current directory)
@@ -36,7 +37,7 @@ Function Remove-PKGitEmail {
         Verbose          True
         PipelineInput    False
         ScriptName       Remove-PKGitEmail
-        ScriptVersion    1.0
+        ScriptVersion    1.01
 
         VERBOSE: [BEGIN: Remove-PKGitEmail] Remove git global config user email address
         VERBOSE: Commands:
@@ -73,7 +74,7 @@ Function Remove-PKGitEmail {
         Verbose          True
         PipelineInput    True
         ScriptName       Remove-PKGitEmail
-        ScriptVersion    1.0
+        ScriptVersion    1.01
 
         VERBOSE: [BEGIN: Remove-PKGitEmail] Remove git local config user email address
         VERBOSE: Commands:
@@ -107,7 +108,7 @@ Function Remove-PKGitEmail {
 )]
 Param(
     [Parameter(
-        Mandatory = $True,
+        Mandatory,
         HelpMessage = "Target scope for removal of git config email: Global, Local, or All"
     )]
     [ValidateSet("Global","Local","All")]
@@ -127,14 +128,16 @@ Param(
 Begin {
 
     # Current version (please keep up to date from comment block)
-    [version]$Version = "01.00"
+    [version]$Version = "01.01"
+
+    $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     # How did we get here
     $ScriptName = $MyInvocation.MyCommand.Name
     [switch]$PipelineInput = $MyInvocation.ExpectingInput
 
     # Display our parameters
-    $CurrentParams = $PSBoundParameters
+    $CurrentParams = @{} + $PSBoundParameters
     $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} |
         Where-Object {Test-Path variable:$_}| ForEach-Object {
             $CurrentParams.Add($_, (Get-Variable $_).value)
@@ -178,7 +181,7 @@ Begin {
     #endregion Functions
 
     #region Splats
-    $Param_WP = @{
+    $Itemaram_WP = @{
         Activity         = "Remove git email address"
         CurrentOperation = $Null
         Status           = "Working"
@@ -207,28 +210,28 @@ Process {
             $Total = $Path.Count
             $Current = 0
 
-            Foreach ($P in $Path) {
+            Foreach ($Item in $Path) {
                 [switch]$Continue = $False
 
                 # Validate directory exists and contains a git repository
                 $Msg = "Verifying that path is valid and contains a git repository"
-                Write-Verbose "[$P] $Msg"
+                Write-Verbose "[$Item] $Msg"
 
                 $Current ++
-                $Param_WP.PercentComplete = ($Current/$Total*100)
-                $Param_WP.Status = $P
-                $Param_WP.CurrentOperation = $Msg
+                $Itemaram_WP.PercentComplete = ($Current/$Total*100)
+                $Itemaram_WP.Status = $Item
+                $Itemaram_WP.CurrentOperation = $Msg
                 Write-Progress @Param_WP
 
                 Try {
-                    If ($Null = Test-Path -Path $P -PathType Container -ErrorAction Stop) {
-                        $Target = $P
+                    If ($Null = Test-Path -Path $Item -PathType Container -ErrorAction Stop) {
+                        $Target = $Item
                     }
                     $Continue = $True
                 }
                 Catch {
                     $Msg = "Invalid directory path!"
-                    Write-Warning "[$P] $Msg"
+                    Write-Warning "[$Item] $Msg"
                     Continue
                 }
 
@@ -236,8 +239,8 @@ Process {
                 If ($Continue.IsPresent) {
                     $Continue = $False
 
-                    [object[]]$RepoCheck = Test-PKGitRepo -Path $P -Verbose:$False -ErrorAction Stop
-                    If ($RepoCheck) {
+                    [object[]]$GitRepos = Test-PKGitRepo -Path $Item -Verbose:$False -ErrorAction Stop
+                    If ($GitRepos) {
                         $Continue = $True
                     }
                     Else {
@@ -251,23 +254,23 @@ Process {
                 If ($Continue.IsPresent) {
                     $Msg = "Getting current local git email address"
                     Write-Verbose "[$Target] $Msg"
-                    $Param_WP.CurrentOperation = $Msg
+                    $Itemaram_WP.CurrentOperation = $Msg
                     Write-Progress @Param_WP
 
-                    $CurrentEmail = _GetEmail -ScopeLevel "local" -Path $P
+                    $CurrentEmail = _GetEmail -ScopeLevel "local" -Path $Item
 
                     If ($CurrentEmail) {
                         $Msg = "Current email address is $CurrentEmail"
                         Write-Verbose "[$Target] $Msg"
 
-                        $Param_WP.CurrentOperation = "Removing email address"
+                        $Itemaram_WP.CurrentOperation = "Removing email address"
                         Write-Progress @Param_WP
 
                         $ConfirmMsg = "Remove git local email address '$CurrentEmail'"
-                        If ($PSCmdlet.ShouldProcess($Target, $ConfirmMsg)) {
+                        If ($ItemSCmdlet.ShouldProcess($Target, $ConfirmMsg)) {
                             Try {
-                                _RemoveEmail -ScopeLevel "local" -Path $P
-                                $VerifyEmail = _GetEmail -ScopeLevel "local" -Path $P
+                                _RemoveEmail -ScopeLevel "local" -Path $Item
+                                $VerifyEmail = _GetEmail -ScopeLevel "local" -Path $Item
 
                                 If ([string]::IsNullOrEmpty($VerifyEmail)) {
                                     $Msg = "Successfully removed email address"
@@ -329,12 +332,12 @@ Process {
         {$_ -in "Global","All"} {
             # Remove global git email address
             $Target = [System.Net.Dns]::GetHostName()
-            $Param_WP.PercentComplete = 100
-            $Param_WP.Status = $Target
+            $Itemaram_WP.PercentComplete = 100
+            $Itemaram_WP.Status = $Target
 
             $Msg = "Getting current global git email address"
             Write-Verbose "[$Target] $Msg"
-            $Param_WP.CurrentOperation = $Msg
+            $Itemaram_WP.CurrentOperation = $Msg
             Write-Progress @Param_WP
 
             $CurrentEmail = _GetEmail -ScopeLevel "global"
@@ -343,11 +346,11 @@ Process {
                 $Msg = "Current email address is $CurrentEmail"
                 Write-Verbose "[$Target] $Msg"
 
-                $Param_WP.CurrentOperation = "Remove email address"
+                $Itemaram_WP.CurrentOperation = "Remove email address"
                 Write-Progress @Param_WP
 
                 $ConfirmMsg = "Remove git global email address '$CurrentEmail'"
-                If ($PSCmdlet.ShouldProcess($Target, $ConfirmMsg)) {
+                If ($ItemSCmdlet.ShouldProcess($Target, $ConfirmMsg)) {
                     Try {
                         _RemoveEmail -ScopeLevel "global"
                         $VerifyEmail = _GetEmail -ScopeLevel "global"
@@ -413,6 +416,7 @@ Process {
 } #end process
 End {
     Write-Progress -Activity * -Completed
-    Write-Verbose "[END: $ScriptName] Script ran successfully"
+    $Stopwatch.Stop()
+    Write-Verbose "[END: $ScriptName] Script completed in $(("{0:hh'h 'mm'm 'ss's'}" -f $Stopwatch.Elapsed))"
 }
 } #end Remove-PKGitEmail

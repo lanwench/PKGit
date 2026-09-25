@@ -14,28 +14,29 @@ Function New-PKGitReadmeFile {
     It uses GitHub Flavored Markdown, so the GitHub website will format it nicely.
     Works with any PowerShell module (script or compiled) and any help (comment-based or XML-based) as long as it is accessible via Get-Help
 
-.NOTES 
+.NOTES
     Name    : Function_New-PKGitReadmeFile.ps1
     Created : 2017-02-10
     Author  : Paula Kingsley
-    Version : 06.00
-    History:
+    Version : 06.01
+    History :
 
         ** PLEASE KEEP $VERSION UP TO DATE IN BEGIN BLOCK **
 
-        v01.00	2017-02-10	Adapted Mathieu Buisson's original module script (see link)
-        v01.01	2017-02-10	Changed formatting output/headers
-        v02.00	2017-05-16	Renamed from New-ToolboxReadmeFromHelp, added rename for old file found
-        v02.01	2017-08-22	Added LabelName parameter, to choose Synopsis or Description for function content
-        v02.02	2017-10-30	Added 'Description', minor cosmetic changes
-        v03.00	2019-07-22	General updates, help/examples
-        v04.00	2021-04-19	Added parameter to include function version, if found (may not always work!)
-        v04.01	2021-04-26	Changed function version check to opt-out, cosmetic changes
-        v05.00	2021-05-24	Simplified, removed custom console output functions, removed Quiet, added switch to output file content rather than defaulting to same
-        v05.01	2021-06-21	Fixed erroneous rename
-        v05.02	2022-04-28	Fixed function version check (was generating errors if not found)
-        v05.03	2022-09-19	Minor updates to author/description, cleanup
-        v06.00	2026-05-28	PS7/macOS compatibility fixes; cross-platform path handling; bumped #Requires to 5.1; dropped build component from version format; removed unused inner function; multiline regex for version extraction from Begin block
+        v01.00 - 2017-02-10 - Adapted Mathieu Buisson's original module script (see link)
+        v01.01 - 2017-02-10 - Changed formatting output/headers
+        v02.00 - 2017-05-16 - Renamed from New-ToolboxReadmeFromHelp, added rename for old file found
+        v02.01 - 2017-08-22 - Added LabelName parameter, to choose Synopsis or Description for function content
+        v02.02 - 2017-10-30 - Added 'Description', minor cosmetic changes
+        v03.00 - 2019-07-22 - General updates, help/examples
+        v04.00 - 2021-04-19 - Added parameter to include function version, if found (may not always work!)
+        v04.01 - 2021-04-26 - Changed function version check to opt-out, cosmetic changes
+        v05.00 - 2021-05-24 - Simplified, removed custom console output functions, removed Quiet, added switch to output file content rather than defaulting to same
+        v05.01 - 2021-06-21 - Fixed erroneous rename
+        v05.02 - 2022-04-28 - Fixed function version check (was generating errors if not found)
+        v05.03 - 2022-09-19 - Minor updates to author/description, cleanup
+        v06.00 - 2026-05-28 - PS7/macOS compatibility fixes; cross-platform path handling; bumped #Requires to 5.1; dropped build component from version format; removed unused inner function; multiline regex for version extraction from Begin block
+        v06.01 - 2026-09-17 - Fixed .NOTES formatting; standardized history format; fixed Mandatory=$true to bare Mandatory
 .LINK
     https://github.com/MathieuBuisson/Powershell-Utility/tree/master/ReadmeFromHelp
 
@@ -175,7 +176,7 @@ Function New-PKGitReadmeFile {
 
         _All code should be presumed to be written by jbloggs unless otherwise specified (see the context help within each function for more information, including credits)._
 
-        _Changelogs are generally found within individual functions, not per module._
+        _Per-function change history is generally found within each function's Notes, but the CHANGELOG.md file contains a summary of changes across all module functions._
 
         ## Commands
 
@@ -194,7 +195,7 @@ Function New-PKGitReadmeFile {
 Param( 
     [Parameter(
         ParameterSetName = "Module",
-        Mandatory = $true,
+        Mandatory,
         Position = 0,
         ValueFromPipeline = $True,
         ValueFromPipelineByPropertyName = $True,
@@ -206,7 +207,7 @@ Param(
 
     [Parameter(
         ParameterSetName = "File",
-        Mandatory = $True,
+        Mandatory,
         Position = 0,
         HelpMessage = "Full path to module's .psm1 file (e.g., c:\users\jbloggs\modules\modulename.psm1)"
     )]
@@ -255,12 +256,15 @@ Begin {
     # Current version (please keep up to date from comment block)
     [version]$Version = "06.01"
 
+    # Start the clock
+    $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
     # Show our settings
     $Source = $PSCmdlet.ParameterSetName
     [switch]$PipelineInput = $MyInvocation.ExpectingInput
     $ScriptName = $MyInvocation.MyCommand.Name
-    $CurrentParams = $PSBoundParameters
-    $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} | 
+    $CurrentParams = @{} + $PSBoundParameters
+    $MyInvocation.MyCommand.Parameters.keys | Where-Object {$CurrentParams.keys -notContains $_} |
         Where-Object {Test-Path variable:$_}| Foreach-Object {
             $CurrentParams.Add($_, (Get-Variable $_).value)
         }
@@ -582,7 +586,7 @@ Process {
         # Notes
         $Readme += "$Spacer## Notes"
         $Readme += "$Spacer`_All code should be presumed to be written by $Author unless otherwise specified (see the context help within each function for more information, including credits)._"
-        $Readme += "$Spacer`_Changelogs are generally found within individual functions, not per module._"
+        $Readme += "$Spacer`__Per-function change details are generally found within each function's Notes, but a CHANGELOG.md file contains a summary of changes across all module functions.__"
         
         If ($SkipVersionCheck.IsPresent) {
             # Commands
@@ -731,9 +735,8 @@ Process {
     }
 }
 End {
-    
-    Write-Progress -Activity $Activity -Completed
-    $Msg = "[END: $ScriptName] Script ran successfully"
-    Write-Verbose $Msg
+    Write-Progress -Activity * -Completed
+    $Stopwatch.Stop()
+    Write-Verbose "[END: $ScriptName] Script completed in $(("{0:hh'h 'mm'm 'ss's'}" -f $Stopwatch.Elapsed))"
 }
 } #end New-PKGitReadmeFile
