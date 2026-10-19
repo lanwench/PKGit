@@ -6,9 +6,9 @@
 |**Name** |PKGit|
 |**Author** |Paula Kingsley|
 |**Type** |Script|
-|**Version** |2.1|
+|**Version** |2.2|
 |**Description**|Various functions / wrappers for git commands|
-|**Date**|README.md file generated on Friday, September 25, 2026 3:14:01 PM|
+|**Date**|README.md file generated on Monday, October 19, 2026 11:07:10 AM|
 
 This module contains 13 PowerShell functions or commands
 
@@ -21,7 +21,7 @@ All functions should have reasonably detailed comment-based help, accessible via
 
 Computers must:
 
-  * be running PowerShell 4.0.0 or later
+  * be running PowerShell 5.1.0 or later
 
 ## Installation
 
@@ -42,7 +42,7 @@ __Per-function change details are generally found within each function's Notes, 
 |<span style="white-space: nowrap">**Get-PKGitInstall**</span>|07.01|Looks for copies of the git executable on the local computer, in the system path or by folder, returning a PSObject with details about the command and file|
 |<span style="white-space: nowrap">**Get-PKGitRemoteOrigin**</span>|04.01|Get remote origin details from one or more git repositories|
 |<span style="white-space: nowrap">**Get-PKGitRepo**</span>|01.01|Check the status and details of one or more git repositories without having to memorize annoying git syntax|
-|<span style="white-space: nowrap">**Get-PKGitStatus**</span>|05.01|Check one or more git repositories for name, origin, status, and a summary|
+|<span style="white-space: nowrap">**Get-PKGitStatus**</span>|06.00|Check one or more git repositories for name, origin, status, and a summary|
 |<span style="white-space: nowrap">**Get-PKGitUpstream**</span>|01.01|Check for pending updates from the remote origin on one or more git repositories|
 |<span style="white-space: nowrap">**Invoke-PKGitPull**</span>|04.00|Pull changes from the remote origin in one or more git repositories with confirmation (basic git pull only; no fancy options)|
 |<span style="white-space: nowrap">**New-PKGitReadmeFile**</span>|06.01|Generates a github markdown README.md file from the comment-based help in a PowerShell module, including module & function details (and versions if found)|
